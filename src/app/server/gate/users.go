@@ -1,11 +1,12 @@
 package gate
 
-import "soy/vat"
+import "fat/gutil"
+import "fat/gsys"
 
 type LogonMode struct {
-	vat.Locked
-	open_list vat.IArrayObject //等待列表
-	users     vat.IHashMap     //成功的列表
+	gsys.Locked
+	open_list gutil.IArrayObject //等待列表
+	users     gutil.IHashMap     //成功的列表
 }
 
 func NewLogonMode() *LogonMode {
@@ -16,8 +17,8 @@ func NewLogonMode() *LogonMode {
 
 func (this *LogonMode) InitLogonMode() {
 	this.InitLocked()
-	this.open_list = vat.NewArray()
-	this.users = vat.NewHashMap()
+	this.open_list = gutil.NewArray()
+	this.users = gutil.NewHashMap()
 }
 
 func (this *LogonMode) CommitLogon(data interface{}) {
@@ -33,7 +34,7 @@ func (this *LogonMode) CompleteLogon(uid int32, session uint64) (*GamePlayer, bo
 		player := val.(*GamePlayer).Player
 		return player.UserID == uid && player.SessionID == session
 	})
-	if index != vat.NOT_VALUE {
+	if index != gutil.NOT_VALUE {
 		this.open_list.DelIndex(index)
 		return data.(*GamePlayer), true
 	}

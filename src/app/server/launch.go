@@ -14,9 +14,6 @@ func init() {
 }
 
 func Launch() {
-	if true {
-		return
-	}
 	go gate.ServerLaunch(config.GATE_PORT)
 	go logon.ServerLaunch(config.LOGIN_PORT)
 	go world.ServerLaunch(config.WORLD_PORT)
