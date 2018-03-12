@@ -9,6 +9,8 @@ var events map[int]interface{} = map[int]interface{}{
 	command.SERVER_WORLD_REMOVE_PLAYER:  on_remove_player,
 	command.SERVER_WORLD_NOTICE_PLAYERS: on_notice_players,
 	command.SERVER_WORLD_KICK_PLAYER:    on_kick_player,
+	command.SERVER_WORLD_GET_ONLINE_NUM: on_online_player,
+	command.SERVER_WORLD_NOTICE_TEST:    on_notice_test,
 }
 
 //登录发送来(登录通知)
@@ -68,4 +70,14 @@ func on_notice_players(pack gnet.ISocketPacket) {
 	NoticeAllUser(func(player *GamePlayer) interface{} {
 		return packet_send_client(player.UserID, player.SessionID, cmd, uid, body)
 	})
+}
+
+func on_online_player(tx gnet.INetContext, pack gnet.ISocketPacket) {
+	onlines := int32(len(players))
+	fmt.Println("当前在线人数:", onlines)
+	tx.Send(gnet.NewPacketWithArgs(command.SERVER_WORLD_GET_ONLINE_NUM, onlines))
+}
+
+func on_notice_test(pack gnet.ISocketPacket) {
+
 }

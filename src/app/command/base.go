@@ -29,7 +29,7 @@ func SetRouter(port int, events map[int]interface{}, group gsys.IAsynDispatcher)
 	//心跳激活
 	mode.On(gnet.GNET_HEARTBEAT_PINT, func(tx gnet.INetContext) {
 		tx.LivePing()
-		println("Heart Beat Set Live")
+		//println("Heart Beat Set Live")
 	})
 	//建立一个路由节点
 	router := nsc.NewRemoteScheduler(config.GetDataRouter(port), func(rotue nsc.IRouter, data interface{}) {
