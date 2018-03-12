@@ -67,7 +67,7 @@ func test() {
 	go func() {
 		gutil.Sleep(1000)
 		//for {
-		for i := 0; i < 1; i++ {
+		for i := 0; i < 1000; i++ {
 			test_send(i)
 		}
 		//test_send(1)

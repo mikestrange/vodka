@@ -36,7 +36,7 @@ func init_mysql() {
 func ServerLaunch(port int) {
 	gnet.ListenAndRunServer(port, func(conn interface{}) {
 		gnet.LoopConnWithPing(gnet.NewConn(conn), func(tx gnet.INetContext, data interface{}) {
-			mode.Done(data.(gnet.ISocketPacket).Cmd(), tx, data)
+			go mode.Done(data.(gnet.ISocketPacket).Cmd(), tx, data)
 		})
 	})
 }
