@@ -71,7 +71,7 @@ func test() {
 	go func() {
 		gutil.Sleep(1000)
 		//for {
-		for i := 0; i < 10; i++ {
+		for i := 0; i < 100; i++ {
 			test_send(i)
 		}
 		//test_send(1)
@@ -88,6 +88,8 @@ func main() {
 		server.Launch()
 	}
 	if gutil.MatchSys(1, "cli") {
+		//idx := gutil.GetArgs(2)
+		//str := gutil.GetArgs(3)
 		go test()
 	}
 	//go http_echo()

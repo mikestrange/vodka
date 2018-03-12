@@ -135,3 +135,21 @@ func Pwd() string {
 	}
 	return root_path.(string)
 }
+
+//匹配系统参数
+func MatchSys(idx int, str string) bool {
+	if idx >= len(os.Args) {
+		return false
+	}
+	return os.Args[idx] == str
+}
+
+func GetArgs(idx int) string {
+	return os.Args[idx]
+}
+
+func TraceData() {
+	for i := range os.Args {
+		fmt.Println(i, "系统参数:", os.Args[i])
+	}
+}
