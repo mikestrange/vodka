@@ -84,12 +84,12 @@ func main() {
 	glog.LogAndRunning(glog.LOG_DEBUG, 100000)
 	glog.Debug("运行路径=%s", gutil.Pwd())
 	//启动服务器
-	//if gutil.MatchSys(1, "ser") {
-	server.Launch()
-	//}
-	//if gutil.MatchSys(1, "cli") {
-	go test()
-	//}
+	if gutil.MatchSys(1, "ser") {
+		server.Launch()
+	}
+	if gutil.MatchSys(1, "cli") {
+		go test()
+	}
 	//go http_echo()
 	//
 	gutil.Add(1)
