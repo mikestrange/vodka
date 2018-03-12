@@ -34,8 +34,8 @@ func test_send(idx int) {
 					tx.Send(psend2)
 					psend3 := gnet.NewPacketWithTopic(command.CLIENT_ENTER_TEXAS_ROOM, config.TOPIC_GAME, int16(102))
 					tx.Send(psend3)
-					psend4 := gnet.NewPacketWithTopic(command.CLIENT_QUIT_CHANNEL, config.TOPIC_CHAT, int32(10086))
-					tx.Send(psend4)
+					//psend4 := gnet.NewPacketWithTopic(command.CLIENT_QUIT_CHANNEL, config.TOPIC_CHAT, int32(10086))
+					//tx.Send(psend4)
 				}
 			case command.CLIENT_NOTICE_CHANNEL:
 				{
@@ -67,7 +67,7 @@ func test() {
 	go func() {
 		gutil.Sleep(1000)
 		//for {
-		for i := 0; i < 1000; i++ {
+		for i := 0; i < 100; i++ {
 			test_send(i)
 		}
 		//test_send(1)
@@ -79,9 +79,13 @@ func test() {
 func main() {
 	glog.LogAndRunning(glog.LOG_DEBUG, 100000)
 	glog.Debug("运行路径=%s", gutil.Pwd())
-	//
-	go test()
-	go server.Launch()
+	//启动服务器
+	if gutil.MatchSys(1, "ser") {
+		server.Launch()
+	}
+	if gutil.MatchSys(1, "cli") {
+		go test()
+	}
 	//go http_echo()
 	//
 	gutil.Add(1)
