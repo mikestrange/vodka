@@ -1,20 +1,9 @@
 package main
 
-import (
-	"encoding/json"
-	"fmt"
-	"io/ioutil"
-	"net/http"
-)
-
-import "bridge"
-
-import "soy/vat"
-
 import "app/command"
 import "app/config"
 import "app/server"
-
+import "fat/gsys"
 import "fat/glog"
 import "fat/gnet"
 
@@ -25,7 +14,7 @@ const host string = "127.0.0.1:8081" //"120.77.149.74:8081" //
 
 func test_send(idx int) {
 	my_uid := int32(1 + idx)
-	t := vat.GetMsTime()
+	t := gutil.GetNano()
 	if tx, ok := gnet.NewSocket(host); ok {
 		go gnet.LoopWithHandle(tx, func(tx gnet.INetContext, data interface{}) {
 			packet := data.(gnet.ISocketPacket)
@@ -38,7 +27,7 @@ func test_send(idx int) {
 				{
 					code := packet.ReadShort()
 					body := packet.ReadBytes(0)
-					println("客户端登录: err=", code, ",UID=", my_uid, ",body=", body, ",runtime=", vat.GetMsTime()-t, "毫秒")
+					println("客户端登录: err=", code, ",UID=", my_uid, ",body=", body, ",runtime=", (gutil.GetNano()-t)/1000000, "毫秒")
 					psend := gnet.NewPacketWithTopic(command.CLIENT_JOIN_CHANNEL, config.TOPIC_CHAT, int32(10086), "test1")
 					tx.Send(psend)
 					psend2 := gnet.NewPacketWithTopic(command.CLIENT_NOTICE_CHANNEL, config.TOPIC_CHAT, int32(10086), int16(1), "我是谁")
@@ -64,8 +53,7 @@ func test_send(idx int) {
 			}
 		})
 		//登录
-		go vat.SetAfter(10, func() {
-			t = vat.GetMsTime()
+		go gsys.After(10, func() {
 			psend := gnet.NewPacket()
 			psend.WriteBegin(command.CLIENT_LOGON)
 			psend.WriteValue(my_uid, "abc123")
@@ -90,10 +78,9 @@ func test() {
 
 func main() {
 	glog.LogAndRunning(glog.LOG_DEBUG, 100000)
-	glog.Debug("运行路径=%s", vat.Pwd())
+	glog.Debug("运行路径=%s", gutil.Pwd())
 	//
 	go test()
-	go bridge.Launch()
 	go server.Launch()
 	//go http_echo()
 	//
