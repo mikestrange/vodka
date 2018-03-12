@@ -11,7 +11,7 @@ import "fmt"
 //import "fat/gnet/nsc"
 import "fat/gutil"
 
-const host string = "127.0.0.1:8081" //"120.77.149.74:8081" //
+const host string = "120.77.149.74:8081" //"127.0.0.1:8081" //
 
 func test_send(idx int) {
 	my_uid := int32(1 + idx)
