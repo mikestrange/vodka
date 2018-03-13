@@ -153,15 +153,3 @@ func TraceData() {
 		fmt.Println(i, "系统参数:", os.Args[i])
 	}
 }
-
-//传入毫秒
-func TimeStr(idx int64) string {
-	if idx < 1000 {
-		return fmt.Sprintf("%d毫秒", idx)
-	} else if idx < 60*1000 {
-		return fmt.Sprintf("%d秒", idx/1000)
-	} else if idx < 60*60*1000 {
-		return fmt.Sprintf("%d分钟", idx/(60*1000))
-	}
-	return fmt.Sprintf("%d小时", idx/(60*60*1000))
-}

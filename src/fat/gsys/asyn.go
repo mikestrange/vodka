@@ -40,7 +40,11 @@ func onAsynCloseHandle(closed CloseBlock) {
 //#####################class
 //实例化一个通道(默认使用系统方式)
 func NewChannel() IAsynDispatcher {
-	return NewChannelWithSize(0, 10000, "nil")
+	return newChanWithSize(10000, "chan")
+}
+
+func NewBuffer() IAsynDispatcher {
+	return newBufferWithSize(10000, "buff")
 }
 
 func NewChannelWithSize(mtype int, size int, name string) IAsynDispatcher {

@@ -10,7 +10,7 @@ do
 scp -r ${data} root@hotbeel.com:~/home/godark
 done
 
-#直接运行服务器
-ssh root@hotbeel.com "cd ~/home/godark; ls -a;sh make.sh ser;exit;"
+#直接运行服务器(直接运行分离服务器)
+ssh root@hotbeel.com "cd ~/home/godark; ls -a;sh make.sh disnets;exit;"
 
 exit

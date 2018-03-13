@@ -8,9 +8,6 @@ import "fat/gsys"
 import "fmt"
 import "strings"
 
-//用户链接测试
-const host string = "120.77.149.74:8081" //"127.0.0.1:8081" //
-
 //世界删除
 func Test_remove_player(uid int) {
 	if tx, ok := gnet.NewSocket(config.GetDataRouter(config.WORLD_PORT).Addr()); ok {
@@ -40,9 +37,9 @@ func Test_send_all() {
 		var cid int32 = 10086
 		var fromid int32 = uid
 		var mtype int16 = 0
-		message := gutil.Int64ToString(gutil.GetTimer())
+		message := gutil.Int64ToString(gutil.GetNano())
 		message += "|"
-		for i := 0; i < 950; i++ {
+		for i := 0; i < 100; i++ {
 			message += "A"
 		}
 		go func() {
@@ -51,6 +48,9 @@ func Test_send_all() {
 		}()
 		tx.Send(gnet.NewPacketWithArgs(command.SERVER_WORLD_NOTICE_PLAYERS,
 			uid, cmd, cid, fromid, mtype, message))
+		tx.ReadBytes(1024, func(bits []byte) {
+
+		})
 	}
 }
 
@@ -70,22 +70,36 @@ func Test_get_online() {
 	}
 }
 
-func Test_login_send(idx int) {
-	gutil.Sleep(50)
-	uid := int32(idx)
-	if tx, ok := gnet.NewSocket(host); ok {
-		go test_socket(uid, tx)
-		//登录
-		psend := gnet.NewPacket()
-		psend.WriteBegin(command.CLIENT_LOGON)
-		psend.WriteValue(uid, "abc123")
-		psend.WriteEnd()
-		tx.Send(psend)
+func Test_max_login(idx int) {
+	i := idx
+	for Test_login_send(i) {
+		gutil.Sleep(5)
+		i++
+		if i > 5000 {
+			return
+		}
 	}
+}
+
+func Test_login_send(idx int) bool {
+	//gutil.Sleep(10)
+	uid := int32(idx)
+	if tx, ok := gnet.NewSocket(config.GetDataRouter(config.GATE_PORT).Addr()); ok {
+		go test_socket(uid, tx)
+		return true
+	}
+	return false
 }
 
 func test_socket(uid int32, tx gnet.INetContext) {
 	defer fmt.Println("客户端关闭: uid=", uid)
+	//
+	psend := gnet.NewPacket()
+	psend.WriteBegin(command.CLIENT_LOGON)
+	psend.WriteValue(uid, "abc123")
+	psend.WriteEnd()
+	tx.Send(psend)
+	//
 	t := gutil.GetNano()
 	gnet.LoopWithHandle(tx, func(tx gnet.INetContext, data interface{}) {
 		packet := data.(gnet.ISocketPacket)
@@ -98,8 +112,7 @@ func test_socket(uid int32, tx gnet.INetContext) {
 			{
 				code := packet.ReadShort()
 				body := packet.ReadBytes(0)
-				tt := gutil.TimeStr((gutil.GetNano() - t) / 1000000)
-				fmt.Println("客户端登录: err=", code, ",UID=", uid, ",body=", body, ",runtime=", tt)
+				fmt.Println("客户端登录: err=", code, ",UID=", uid, ",body=", body, ",runtime=", gutil.TimeNanoStr(gutil.GetNano()-t))
 				//psend := gnet.NewPacketWithTopic(command.CLIENT_JOIN_CHANNEL, config.TOPIC_CHAT, int32(10086), "test1")
 				//tx.Send(psend)
 				//str := gutil.Int64ToString(gutil.GetTimer())
@@ -118,7 +131,7 @@ func test_socket(uid int32, tx gnet.INetContext) {
 				cid, fromid, _, message := packet.ReadInt(), packet.ReadInt(), packet.ReadShort(), packet.ReadString()
 				strs := strings.Split(message, "|")
 				chat_time := gutil.ParseInt(strs[0], 0)
-				fmt.Println(uid, ">收到[", fromid, "]在频道[", cid, "] 消息延迟:", gutil.TimeStr(gutil.GetTimer()-chat_time), ", size=", len(strs[1]))
+				fmt.Println(uid, ">收到[", fromid, "]在频道[", cid, "] 消息延迟:", gutil.TimeNanoStr(gutil.GetNano()-chat_time), ", size=", len(strs[1]))
 			}
 		default:
 			fmt.Println("客户端未处理:", packet.Cmd())

@@ -102,10 +102,14 @@ func (this *NetContext) Conn() net.Conn {
 }
 
 func (this *NetContext) Close() int {
-	return this.CloseSign(SIGN_CLOSE_OK)
+	return this.close_asyn_sign(SIGN_CLOSE_OK)
 }
 
 func (this *NetContext) CloseSign(used int) int {
+	return this.close_asyn_sign(used)
+}
+
+func (this *NetContext) close_asyn_sign(used int) int {
 	this.Lock()
 	if this.live {
 		this.used = used

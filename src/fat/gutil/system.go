@@ -1,5 +1,6 @@
 package gutil
 
+import "fmt"
 import "time"
 
 //系统启动的时间
@@ -42,4 +43,45 @@ func GetDayBeginTime() int64 {
 		return val.Unix() - TIME_HOUR*8
 	}
 	return 0
+}
+
+const (
+	Nanosecond  int64 = 1                  //纳秒
+	Microsecond       = 1000 * Nanosecond  //微妙
+	Millisecond       = 1000 * Microsecond //豪妙
+	Second            = 1000 * Millisecond //秒
+	Minute            = 60 * Second        //分钟
+	Hour              = 60 * Minute
+)
+
+//传入毫秒
+func TimeStr(idx int64) string {
+	return TimeNanoStr(idx / Millisecond)
+}
+
+//传入纳米啊
+func TimeNanoStr(idx int64) string {
+	if idx < Microsecond {
+		return fmt.Sprintf("%d纳秒", idx)
+	} else if idx < Millisecond {
+		t1, t2 := IntTofloat(idx, Microsecond)
+		return fmt.Sprintf("%d.%d微秒", t1, t2)
+	} else if idx < Second {
+		t1, t2 := IntTofloat(idx, Millisecond)
+		return fmt.Sprintf("%d.%d毫秒", t1, t2)
+	} else if idx < Minute {
+		t1, t2 := IntTofloat(idx, Second)
+		return fmt.Sprintf("%d.%d秒", t1, t2)
+	} else if idx < Hour {
+		t1, t2 := IntTofloat(idx, Minute)
+		return fmt.Sprintf("%d.%d分钟", t1, t2)
+	}
+	t1, t2 := IntTofloat(idx, Hour)
+	return fmt.Sprintf("%d.%d小时", t1, t2)
+}
+
+func IntTofloat(val int64, sub int64) (int, int) {
+	top := val / sub
+	pot := (val - top*sub) / (sub / 100)
+	return int(top), int(pot)
 }
