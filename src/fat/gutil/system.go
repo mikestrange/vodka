@@ -59,7 +59,7 @@ func TimeStr(idx int64) string {
 	return TimeNanoStr(idx / Millisecond)
 }
 
-//传入纳米啊
+//传入纳秒
 func TimeNanoStr(idx int64) string {
 	if idx < Microsecond {
 		return fmt.Sprintf("%d纳秒", idx)
@@ -80,6 +80,7 @@ func TimeNanoStr(idx int64) string {
 	return fmt.Sprintf("%d.%d小时", t1, t2)
 }
 
+//精确度2位
 func IntTofloat(val int64, sub int64) (int, int) {
 	top := val / sub
 	pot := (val - top*sub) / (sub / 100)

@@ -1,7 +1,5 @@
 package main
 
-import "fmt"
-
 import "app"
 import "app/server"
 
@@ -13,8 +11,6 @@ import "fat/glog"
 //import "fat/gnet"
 
 func main() {
-	t := gutil.GetNano()
-
 	glog.LogAndRunning(glog.LOG_DEBUG, 100000)
 	glog.Debug("运行路径=%s", gutil.Pwd())
 	gutil.TraceData()
@@ -28,12 +24,6 @@ func main() {
 		//server.Launch() //启动服务器
 		client_input()
 	}
-	val := gutil.GetNano() - t
-	t1, t2 := gutil.IntTofloat(val, 1000)
-	println(t1, t2, val)
-
-	fmt.Println(gutil.GetNano()-t, gutil.TimeNanoStr(gutil.GetNano()-t))
-
 	gutil.Add(1)
 	gutil.Wait()
 }
