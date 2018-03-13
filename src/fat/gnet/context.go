@@ -4,6 +4,7 @@ package gnet
 //注意:(目前可能存在丢消息的情况,当关闭的时候,可能存在写消息的情况)
 import (
 	"fat/gsys"
+	"fat/gutil"
 	"fmt"
 	"io"
 	"net"
@@ -216,14 +217,18 @@ func LoopContext(tx INetContext, block func([]byte)) {
 func LoopWithHandle(tx INetContext, block ContextBlock) {
 	handle := NewSocketHandler()
 	tx.ReadBytes(handle.BuffSize(), func(bits []byte) {
+		tt := gutil.GetNano()
 		handle.LoadBytes(bits)
 		for {
 			if data, ok := handle.Pack(); ok {
+				t2 := gutil.GetNano()
 				block(tx, data)
+				fmt.Println(data.(ISocketPacket).Cmd(), "#Packet Delay:", gutil.NanoStr(gutil.GetNano()-t2))
 			} else {
 				break
 			}
 		}
+		fmt.Println("Socket Delay:", gutil.NanoStr(gutil.GetNano()-tt))
 	})
 }
 

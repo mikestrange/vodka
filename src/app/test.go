@@ -112,7 +112,7 @@ func test_socket(uid int32, tx gnet.INetContext) {
 			{
 				code := packet.ReadShort()
 				body := packet.ReadBytes(0)
-				fmt.Println("客户端登录: err=", code, ",UID=", uid, ",body=", body, ",runtime=", gutil.TimeNanoStr(gutil.GetNano()-t))
+				fmt.Println("客户端登录: err=", code, ",UID=", uid, ",body=", body, ",runtime=", gutil.NanoStr(gutil.GetNano()-t))
 				//psend := gnet.NewPacketWithTopic(command.CLIENT_JOIN_CHANNEL, config.TOPIC_CHAT, int32(10086), "test1")
 				//tx.Send(psend)
 				//str := gutil.Int64ToString(gutil.GetTimer())
@@ -131,7 +131,7 @@ func test_socket(uid int32, tx gnet.INetContext) {
 				cid, fromid, _, message := packet.ReadInt(), packet.ReadInt(), packet.ReadShort(), packet.ReadString()
 				strs := strings.Split(message, "|")
 				chat_time := gutil.ParseInt(strs[0], 0)
-				fmt.Println(uid, ">收到[", fromid, "]在频道[", cid, "] 消息延迟:", gutil.TimeNanoStr(gutil.GetNano()-chat_time), ", size=", len(strs[1]))
+				fmt.Println(uid, ">收到[", fromid, "]在频道[", cid, "] 消息延迟:", gutil.NanoStr(gutil.GetNano()-chat_time), ", size=", len(strs[1]))
 			}
 		default:
 			fmt.Println("客户端未处理:", packet.Cmd())

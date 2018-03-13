@@ -55,12 +55,12 @@ const (
 )
 
 //传入毫秒
-func TimeStr(idx int64) string {
-	return TimeNanoStr(idx / Millisecond)
+func MicStr(idx int64) string {
+	return NanoStr(idx / Millisecond)
 }
 
 //传入纳秒
-func TimeNanoStr(idx int64) string {
+func NanoStr(idx int64) string {
 	if idx < Microsecond {
 		return fmt.Sprintf("%d纳秒", idx)
 	} else if idx < Millisecond {
