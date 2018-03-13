@@ -4,9 +4,11 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"strconv"
+	"strings"
 )
 
-type InputBlock func(string)
+type InputBlock func([]string)
 
 //系统输出
 func system_output(msg string) bool {
@@ -26,10 +28,12 @@ func system_output(msg string) bool {
 
 //回车输入
 func loop(call InputBlock) {
+	println("[godark input open]")
 	inputReader := bufio.NewReader(os.Stdin)
 	for {
-		if msg, err := inputReader.ReadString('\n'); err == nil {
-			call(msg)
+		if str, err := inputReader.ReadString('\n'); err == nil {
+			str = strings.TrimSpace(str)
+			call(strings.Split(str, " "))
 		} else {
 			fmt.Println("Input Err:", err)
 			break
@@ -40,4 +44,22 @@ func loop(call InputBlock) {
 
 func GoAndRunningInput(call InputBlock) {
 	go loop(call)
+}
+
+//获取参数
+func Str(idx int, str []string, def string) string {
+	if idx >= len(str) {
+		return def
+	}
+	return str[idx]
+}
+
+func Int(idx int, str []string, def int) int {
+	if idx >= len(str) {
+		return def
+	}
+	if val, err := strconv.Atoi(str[idx]); err == nil {
+		return val
+	}
+	return def
 }

@@ -78,3 +78,16 @@ func (this *LogonMode) RemoveUser(uid int32) (*GamePlayer, bool) {
 	}
 	return data.(*GamePlayer), true
 }
+
+func (this *LogonMode) RemoveUserWithSession(uid int32, session uint64) (*GamePlayer, bool) {
+	this.Lock()
+	defer this.Unlock()
+	if val := this.users.Val(uid); val != nil {
+		player := val.(*GamePlayer)
+		if player.Player.SessionID == session {
+			this.users.Del(uid)
+			return player, true
+		}
+	}
+	return nil, false
+}

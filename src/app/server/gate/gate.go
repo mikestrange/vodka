@@ -82,12 +82,10 @@ func check_logon(tx gnet.INetContext) (*UserData, bool) {
 func context_close_handle(tx gnet.INetContext) {
 	if data, ok := check_logon(tx); ok {
 		tx.SetClient(nil)
-		_, ok := logon.CompleteLogon(data.UserID, data.SessionID)
-		if ok {
-			println("用户在登录阶段退出:", data.UserID)
-		} else {
-			println("用户正常退出登录:", data.UserID)
-		}
+		//登录等待列表
+		logon.CompleteLogon(data.UserID, data.SessionID)
+		//登录成功后的删除
+		logon.RemoveUserWithSession(data.UserID, data.SessionID)
 		//通知世界
 		router.Send(config.TOPIC_WORLD, packet_world_delplayer(data.UserID, data.GateID, data.SessionID))
 	} else {

@@ -68,9 +68,13 @@ func on_logout(tx gnet.INetContext, packet gnet.ISocketPacket) {
 
 //被踢(一般世界发送)
 func on_kick(packet gnet.ISocketPacket) {
-	code, UserID := packet.ReadShort(), packet.ReadInt()
+	UserID, _ := packet.ReadInt(), packet.ReadUInt64()
+	code := packet.ReadShort()
 	if player, ok := logon.RemoveUser(UserID); ok {
+		fmt.Println("World guest kick UID Ok:", UserID, code)
 		kick_player(player, code)
+	} else {
+		fmt.Println("World guest kick UID Err:", UserID, code)
 	}
 }
 

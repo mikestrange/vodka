@@ -23,8 +23,10 @@ func SetRouter(port int, events map[int]interface{}, group gsys.IAsynDispatcher)
 		}
 	})
 	//注册监听
-	for k, v := range events {
-		mode.On(k, v)
+	if events != nil {
+		for k, v := range events {
+			mode.On(k, v)
+		}
 	}
 	//心跳激活
 	mode.On(gnet.GNET_HEARTBEAT_PINT, func(tx gnet.INetContext) {

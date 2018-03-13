@@ -18,6 +18,8 @@ export GOPATH=$dir
 #编辑进程名称
 go build -o $NAME $dir/src/main.go
 cd $dir
-./$NAME ser > debug.log &
+./$NAME $0 > debug.log &
 #上面已经进入后台
 #bg %1
+
+exit

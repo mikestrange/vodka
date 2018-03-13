@@ -328,6 +328,8 @@ func (this *ByteArray) _write_val(val interface{}) {
 	switch val.(type) {
 	case string:
 		this.WriteString(val.(string))
+	case IByteArray:
+		this.WriteBytes(val.(IByteArray).Bytes())
 	default:
 		this._write(val)
 	}

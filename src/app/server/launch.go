@@ -7,7 +7,8 @@ import "app/server/gate"
 import "app/server/logon"
 import "app/server/world"
 import "app/server/chat"
-import "app/server/game"
+
+//import "app/server/game"
 
 func init() {
 
@@ -18,5 +19,5 @@ func Launch() {
 	go logon.ServerLaunch(config.LOGIN_PORT)
 	go world.ServerLaunch(config.WORLD_PORT)
 	go chat.ServerLaunch(config.CHAT_PORT)
-	go game.ServerLaunch(config.GAME_PORT)
+	//	go game.ServerLaunch(config.GAME_PORT)
 }

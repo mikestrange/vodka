@@ -54,12 +54,14 @@ func on_remove_player(packet gnet.ISocketPacket) {
 }
 
 //直接踢掉用户(任何地方)
-func on_kick_player(pack gnet.ISocketPacket) {
+func on_kick_player(tx gnet.INetContext, pack gnet.ISocketPacket) {
 	code, uid := pack.ReadShort(), pack.ReadInt()
 	if player, ok := RemoveUser(uid); ok {
 		router.Send(player.SerID(), packet_kick_player(code, player))
+		tx.Send(gnet.NewPacketWithArgs(pack.Cmd(), int16(0), uid))
 	} else {
 		fmt.Println("Kick Err# no user:", uid)
+		tx.Send(gnet.NewPacketWithArgs(pack.Cmd(), int16(1), uid))
 	}
 }
 

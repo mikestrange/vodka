@@ -2,7 +2,10 @@ package config
 
 import (
 	"fat/gnet/nsc"
+	"fmt"
 )
+
+const host string = "120.77.149.74"
 
 //服务器端口
 const (
@@ -32,13 +35,13 @@ var serMap map[int]nsc.IDataRoute
 
 func init() {
 	serMap = map[int]nsc.IDataRoute{
-		GATE_PORT:  nsc.NewDataRouteWithArgs(0, "127.0.0.1:8081", "[网关服务器]", TOPIC_GATE),
-		LOGIN_PORT: nsc.NewDataRouteWithArgs(1, "127.0.0.1:7100", "[登陆服务器]", TOPIC_LOGON),
-		WORLD_PORT: nsc.NewDataRouteWithArgs(2, "127.0.0.1:7200", "[世界服务器]", TOPIC_WORLD),
-		GAME_PORT:  nsc.NewDataRouteWithArgs(3, "127.0.0.1:7300", "[游戏服务器]", TOPIC_GAME),
-		HALL_PORT:  nsc.NewDataRouteWithArgs(4, "127.0.0.1:7400", "[大厅服务器]", TOPIC_HALL),
-		CHAT_PORT:  nsc.NewDataRouteWithArgs(5, "127.0.0.1:7500", "[聊天服务器]", TOPIC_CHAT),
-		DATA_PORT:  nsc.NewDataRouteWithArgs(6, "127.0.0.1:7600", "[数据服务器]", TOPIC_DATAS),
+		GATE_PORT:  nsc.NewDataRouteWithArgs(0, fmt.Sprintf("%s:%d", host, GATE_PORT), "[网关服务器]", TOPIC_GATE),
+		LOGIN_PORT: nsc.NewDataRouteWithArgs(1, fmt.Sprintf("%s:%d", host, LOGIN_PORT), "[登陆服务器]", TOPIC_LOGON),
+		WORLD_PORT: nsc.NewDataRouteWithArgs(2, fmt.Sprintf("%s:%d", host, WORLD_PORT), "[世界服务器]", TOPIC_WORLD),
+		GAME_PORT:  nsc.NewDataRouteWithArgs(3, fmt.Sprintf("%s:%d", host, GAME_PORT), "[游戏服务器]", TOPIC_GAME),
+		HALL_PORT:  nsc.NewDataRouteWithArgs(4, fmt.Sprintf("%s:%d", host, HALL_PORT), "[大厅服务器]", TOPIC_HALL),
+		CHAT_PORT:  nsc.NewDataRouteWithArgs(5, fmt.Sprintf("%s:%d", host, CHAT_PORT), "[聊天服务器]", TOPIC_CHAT),
+		DATA_PORT:  nsc.NewDataRouteWithArgs(6, fmt.Sprintf("%s:%d", host, DATA_PORT), "[数据服务器]", TOPIC_DATAS),
 	}
 }
 
