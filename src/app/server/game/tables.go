@@ -1,6 +1,6 @@
 package game
 
-import "fat/gsys"
+import "ants/gsys"
 import "fmt"
 
 type ITableLogic interface {

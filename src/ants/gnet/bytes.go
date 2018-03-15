@@ -89,6 +89,7 @@ func NewByteArrayWithSize(size int) IByteArray {
 	return this
 }
 
+//这里直接引用，不会复制
 func NewByteArrayWithBytes(bits []byte) IByteArray {
 	this := new(ByteArray)
 	this.InitByteArrayWithBits(bits)
@@ -107,11 +108,15 @@ func (this *ByteArray) InitByteArrayWithSize(size int) {
 	this.bytes = make([]byte, size)
 }
 
-//默认在开始字段
+//直接开始引用
 func (this *ByteArray) InitByteArrayWithBits(bits []byte) {
-	this.InitByteArrayWithSize(len(bits))
-	this.WriteBytes(bits)
-	this.SetBegin()
+	//this.InitByteArrayWithSize(len(bits))
+	//this.WriteBytes(bits)
+	//this.SetBegin()
+	this.bytes = bits
+	this.size = len(bits)
+	this.pos = this.size
+	this.cap_size = this.size
 }
 
 func (this *ByteArray) SetEndian(val binary.ByteOrder) {
@@ -270,20 +275,16 @@ func (this *ByteArray) ReadString() string {
 }
 
 func (this *ByteArray) ReadBytes(size int) []byte {
-	pos := this.pos
-	if size == 0 { //读完所有
-		this.SetEnd()
-		return this.bytes[pos:this.size]
+	if size <= 0 || size > this.Available() {
+		size = this.Available()
 	}
-	if this.pos == this.size { //无字节可读
-		return []byte{}
+	bits := make([]byte, size)
+	p := this.pos
+	for i := 0; i < size; i++ {
+		bits[i] = this.bytes[p+i]
 	}
-	if this.pos+size > this.size { //读出超过，返回所有
-		this.SetEnd()
-		return this.bytes[pos:this.size]
-	}
-	this.SetPos(pos + size)
-	return this.bytes[pos : pos+size]
+	this.SetPos(p + size)
+	return bits
 }
 
 //write
@@ -328,6 +329,8 @@ func (this *ByteArray) _write_val(val interface{}) {
 	switch val.(type) {
 	case string:
 		this.WriteString(val.(string))
+	case []byte:
+		this.WriteBytes(val.([]byte))
 	case IByteArray:
 		this.WriteBytes(val.(IByteArray).Bytes())
 	default:

@@ -53,7 +53,7 @@ func NewTimerWithChannel(target IAsynDispatcher) ITimer {
 }
 
 func (this *ClockTimer) InitClockTimer() {
-	this.InitLocked()
+
 }
 
 func (this *ClockTimer) SetHandle(block TimerBlock) {
@@ -114,7 +114,7 @@ func (this *ClockTimer) complete(idx uint64, data interface{}) {
 	if this.channel == nil {
 		this.check_complete(idx, data)
 	} else {
-		this.channel.AsynPush(func() {
+		this.channel.Push(func() {
 			this.check_complete(idx, data)
 		})
 	}

@@ -1,7 +1,5 @@
 package chat
 
-import "fat/gnet"
-
 type ChatTable struct {
 	channel_id   int32
 	channel_type int8
@@ -56,7 +54,7 @@ func (this *ChatTable) GetUserList() []*GameUser {
 	return list
 }
 
-func (this *ChatTable) NoticeAllUser(block func(*GameUser) gnet.IBytes) {
+func (this *ChatTable) NoticeAllUser(block func(*GameUser) interface{}) {
 	list := this.GetUserList()
 	//通知所有(无锁)
 	for _, player := range list {

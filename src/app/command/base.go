@@ -1,56 +1,63 @@
 package command
 
-import "fat/gutil"
-import "fat/gnet/nsc"
-import "fat/gnet"
-import "app/config"
-import "fat/gsys"
+//ants
+import "ants/gutil"
+import "ants/cluster"
+import "ants/conf"
+import "ants/gnet"
+import "ants/gsys"
 
-//这个可以设置为单线程
-func SetRouter(port int, events map[int]interface{}, group gsys.IAsynDispatcher) (nsc.IRemoteScheduler, gutil.IModeAccessor) {
-	if group != nil {
-		group.Start()
+//基础模块
+func SetMode(handle func(interface{}, ...interface{}), events map[int]interface{}, asyn bool) gutil.IModeAccessor {
+	var group gsys.IAsynDispatcher = nil
+	if asyn {
+		group = gsys.NewChannel()
+		go group.Loop(nil)
 	}
-	//设置回调
-	mode := gutil.NewModeWithHandle(func(block interface{}, cmd int, args ...interface{}) {
-		//时间回执是否异步
-		if group == nil {
-			on_mode_handle(block, args[0], args[1])
-		} else {
-			group.AsynPush(func() {
-				on_mode_handle(block, args[0], args[1])
+	if handle == nil {
+		handle = on_mode_block
+	}
+	mode := gutil.NewModeWithHandle(func(block interface{}, args ...interface{}) {
+		if asyn {
+			group.Push(func() {
+				handle(block, args...)
 			})
+		} else {
+			handle(block, args...)
 		}
 	})
-	//注册监听
-	if events != nil {
-		for k, v := range events {
-			mode.On(k, v)
-		}
+	for k, v := range events {
+		mode.On(k, v)
 	}
 	//心跳激活
-	mode.On(gnet.GNET_HEARTBEAT_PINT, func(tx gnet.INetContext) {
-		tx.LivePing()
-		//println("Heart Beat Set Live")
-	})
-	//建立一个路由节点
-	router := nsc.NewRemoteScheduler(config.GetDataRouter(port), func(rotue nsc.IRouter, data interface{}) {
-		//心跳处理
-		if data.(gnet.ISocketPacket).Cmd() == gnet.GNET_HEARTBEAT_PINT {
-			rotue.Push(gnet.PacketWithHeartBeat)
+	mode.On(gnet.EVENT_HEARTBEAT_PINT, func(proxy gnet.IBaseProxy) {
+		if proxy.Context().AsSocket() {
+			proxy.Send(gnet.NewPackArgs(gnet.EVENT_HEARTBEAT_PINT))
+		} else {
+			proxy.LivePing()
 		}
 	})
-	config.SetServerLists(router)
-	return router, mode
+	return mode
 }
 
-func on_mode_handle(block interface{}, tx interface{}, pack interface{}) {
+//路由节点
+func SetRouter(port int, handle func(cluster.INodeRouter, interface{})) cluster.INetCluster {
+	router := cluster.NewMainCluster(cluster.NewDataRoute(port), handle)
+	conf.EachVo(func(vo *conf.RouteVo) {
+		router.AddRouter(cluster.NewCluster(cluster.NewDataRouteWithVo(vo)))
+	})
+	return router
+}
+
+func on_mode_block(block interface{}, args ...interface{}) {
 	switch block.(type) {
-	case func(gnet.INetContext, gnet.ISocketPacket):
-		block.(func(gnet.INetContext, gnet.ISocketPacket))(tx.(gnet.INetContext), pack.(gnet.ISocketPacket))
 	case func(gnet.ISocketPacket):
-		block.(func(gnet.ISocketPacket))(pack.(gnet.ISocketPacket))
-	case func(gnet.INetContext):
-		block.(func(gnet.INetContext))(tx.(gnet.INetContext))
+		block.(func(gnet.ISocketPacket))(args[0].(gnet.ISocketPacket))
+	case func(gnet.IBaseProxy, gnet.ISocketPacket):
+		block.(func(gnet.IBaseProxy, gnet.ISocketPacket))(args[1].(gnet.IBaseProxy), args[0].(gnet.ISocketPacket))
+	case func(gnet.IBaseProxy):
+		block.(func(gnet.IBaseProxy))(args[1].(gnet.IBaseProxy))
+	default:
+		println("Err: no mode handle ")
 	}
 }

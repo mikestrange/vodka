@@ -1,7 +1,7 @@
 package world
 
 import "app/command"
-import "fat/gnet"
+import "ants/gnet"
 import "fmt"
 
 var events map[int]interface{} = map[int]interface{}{
@@ -54,30 +54,33 @@ func on_remove_player(packet gnet.ISocketPacket) {
 }
 
 //直接踢掉用户(任何地方)
-func on_kick_player(tx gnet.INetContext, pack gnet.ISocketPacket) {
+func on_kick_player(session gnet.IBaseProxy, pack gnet.ISocketPacket) {
 	code, uid := pack.ReadShort(), pack.ReadInt()
 	if player, ok := RemoveUser(uid); ok {
 		router.Send(player.SerID(), packet_kick_player(code, player))
-		tx.Send(gnet.NewPacketWithArgs(pack.Cmd(), int16(0), uid))
+		session.Send(gnet.NewPackArgs(pack.Cmd(), int16(0), uid))
 	} else {
 		fmt.Println("Kick Err# no user:", uid)
-		tx.Send(gnet.NewPacketWithArgs(pack.Cmd(), int16(1), uid))
+		session.Send(gnet.NewPackArgs(pack.Cmd(), int16(1), uid))
 	}
+	session.Close()
 }
 
 //通知世界所有角色(可以直接连世界)
 func on_notice_players(pack gnet.ISocketPacket) {
 	uid, cmd, body := pack.ReadInt(), int(pack.ReadInt()), pack.ReadBytes(0)
 	fmt.Println("Notice World # user=", uid, ",cmd=", cmd, ",size=", len(body))
+	//更快的方法
 	NoticeAllUser(func(player *GamePlayer) interface{} {
 		return packet_send_client(player.UserID, player.SessionID, cmd, uid, body)
 	})
 }
 
-func on_online_player(tx gnet.INetContext, pack gnet.ISocketPacket) {
+func on_online_player(session gnet.IBaseProxy, pack gnet.ISocketPacket) {
 	onlines := int32(len(players))
 	fmt.Println("当前在线人数:", onlines)
-	tx.Send(gnet.NewPacketWithArgs(command.SERVER_WORLD_GET_ONLINE_NUM, onlines))
+	session.Send(gnet.NewPackArgs(command.SERVER_WORLD_GET_ONLINE_NUM, onlines))
+	session.Close()
 }
 
 func on_notice_test(pack gnet.ISocketPacket) {

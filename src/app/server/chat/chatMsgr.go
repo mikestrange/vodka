@@ -1,8 +1,8 @@
 package chat
 
 import (
+	"ants/gnet"
 	"app/command"
-	"fat/gnet"
 	"fmt"
 )
 
@@ -38,7 +38,7 @@ func on_join_channel(packet gnet.ISocketPacket) {
 		player := &GameUser{Player: header, UserName: packet.ReadString()}
 		if table.AddUser(player) {
 			fmt.Println("Enter Chat ok: uid=", player.Player.UserID, ",cid=", cid, ", gate=", player.SerID())
-			table.NoticeAllUser(func(data *GameUser) gnet.IBytes {
+			table.NoticeAllUser(func(data *GameUser) interface{} {
 				return pack_join_table(data.Player.UserID, data.Player.SessionID, cid, player.Player.UserID)
 			})
 		} else {
@@ -57,7 +57,7 @@ func on_quit_channel(packet gnet.ISocketPacket) {
 		if player, ok2 := table.RemoveUser(header.UserID); ok2 {
 			fmt.Println("Exit Chat Ok# user=", header.UserID, ", cid=", cid)
 			//通知所有
-			table.NoticeAllUser(func(data *GameUser) gnet.IBytes {
+			table.NoticeAllUser(func(data *GameUser) interface{} {
 				return pack_exit_table(data.Player.UserID, data.Player.SessionID, cid, player.Player.UserID)
 			})
 			//通知自己
@@ -80,7 +80,7 @@ func on_message(packet gnet.ISocketPacket) {
 		if player, ok2 := table.GetUser(header.UserID); ok2 {
 			//通知所有
 			fmt.Println("Notice Chat Ok: user=", header.UserID, ", cid=", cid, ", size=", len(message))
-			table.NoticeAllUser(func(data *GameUser) gnet.IBytes {
+			table.NoticeAllUser(func(data *GameUser) interface{} {
 				return pack_message(data.Player.UserID, data.Player.SessionID, cid, player.Player.UserID, mtype, message)
 			})
 		} else {

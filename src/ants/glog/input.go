@@ -35,15 +35,22 @@ func loop(call InputBlock) {
 			str = strings.TrimSpace(str)
 			call(strings.Split(str, " "))
 		} else {
-			fmt.Println("Input Err:", err)
+			println("Input Err:", err.Error())
 			break
 		}
 	}
-	fmt.Println("[Exit Input]")
+	println("[Exit Input]")
 }
 
-func GoAndRunningInput(call InputBlock) {
-	go loop(call)
+func Input(call InputBlock) {
+	go func() {
+		defer func() {
+			if err := recover(); err != nil {
+				fmt.Println("input err over:", err)
+			}
+		}()
+		loop(call)
+	}()
 }
 
 //获取参数

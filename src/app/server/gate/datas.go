@@ -1,18 +1,14 @@
 package gate
 
-import "fat/gnet"
-
-//游戏绑定玩家
-type GamePlayer struct {
-	Conn   gnet.INetContext
-	Player *UserData
-}
-
+//用户状态
 const (
-	LOGON_WAIT  = 0
-	LOGON_OK    = 1 //登陆成功
-	LOGON_ERROR = 2 //登陆错误
-	USER_LIMIT  = 3 //被封
+	LOGON_NULL  = 0
+	LOGON_WAIT  = 1
+	LOGON_OK    = 2 //登陆成功
+	LOGON_KICK  = 3 //被踢
+	LOGON_OUT   = 4 //用户退出
+	LOGON_ERROR = 5 //登陆错误
+	USER_LIMIT  = 6 //被封
 )
 
 //玩家信息
@@ -25,19 +21,8 @@ type UserData struct {
 	Status    int32  //游戏状态
 	AppID     int32  //登入的平台
 	RegTime   int64  //登陆的时间（秒）
-	//RPG信息
-	Scene SceneData
 }
 
 func (this *UserData) ServerID() int {
 	return int(this.GateID)
-}
-
-//RPG
-type SceneData struct {
-	Map    int32
-	Status int16
-	X      int16
-	Y      int16
-	Z      int16
 }

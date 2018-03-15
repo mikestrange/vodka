@@ -1,6 +1,6 @@
 package texas
 
-import "fat/gnet"
+import "ants/gnet"
 
 type PlayerVo struct {
 	UserID   int32

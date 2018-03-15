@@ -1,6 +1,6 @@
 package chat
 
-import "fat/gnet"
+import "ants/gnet"
 
 //会话头
 type GameHeader struct {

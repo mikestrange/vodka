@@ -1,42 +1,30 @@
 package logon
 
-//只用来获取用户的数据，并发处理
-
-//import "soy/db/link"
-//import "soy/db/stock"
-import "fat/gnet"
-import "fat/gutil"
-import "fat/gnet/nsc"
+//非网关模块通用
+import "ants/cluster"
+import "ants/gnet"
 import "app/command"
-import "app/config"
 
-//var redis stock.IRedis
-var router nsc.IRemoteScheduler
-var mode gutil.IModeAccessor
+var router cluster.INetCluster
 
-func init() {
-	//init_redis()
-	init_mysql()
-	//基础设施(基本属于单线程)
-	router, mode = command.SetRouter(config.LOGIN_PORT, events, nil)
-}
-
-func init_redis() {
-	//stock.Redis().Connect("localhost", 6379, "")
-	//redis = stock.Redis()
-}
-
-func init_mysql() {
-	//client := link.Mysql()
-	//client.LinkAddr("127.0.0.1:3306", "root", "123456", "user_info")
-	//client.Connect(20)
-}
-
-//服务器的启动
+//服务器的启动(快速启动)
 func ServerLaunch(port int) {
-	gnet.ListenAndRunServer(port, func(conn interface{}) {
-		gnet.LoopConnWithPing(gnet.NewConn(conn), func(tx gnet.INetContext, data interface{}) {
-			go mode.Done(data.(gnet.ISocketPacket).Cmd(), tx, data)
+	//模块调度
+	mode := command.SetMode(nil, events, true)
+	//分布式路由
+	router = command.SetRouter(port, on_router_block)
+	//服务器快速启动
+	gnet.ListenAndRunServer(port, func(session gnet.IBaseProxy) {
+		session.Context().SetHandle(func(event int, bits []byte) {
+			pack := gnet.NewPackBytes(bits)
+			mode.Done(pack.Cmd(), pack, session)
 		})
 	})
+}
+
+func on_router_block(node cluster.INodeRouter, data interface{}) {
+	pack := data.(gnet.ISocketPacket)
+	if pack.Cmd() == gnet.EVENT_HEARTBEAT_PINT {
+		node.Push(gnet.NewPackArgs(gnet.EVENT_HEARTBEAT_PINT))
+	}
 }

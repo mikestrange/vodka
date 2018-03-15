@@ -1,10 +1,9 @@
 package gnet
 
-//var DecodeMap []byte = []byte{, 1, 2}
+import "ants/gutil"
+import "fmt"
 
-/*
-协议包(不同协议不同读取)(只允许一次消息发送)
-*/
+//private 基础包
 type ISocketPacket interface {
 	IByteArray
 	//get
@@ -29,15 +28,17 @@ type ISocketPacket interface {
 	ReadBegin() interface{}
 	ReadEnd() interface{}
 	GetBody() []byte
+	//
+	Print()
 }
 
 type SocketPacket struct {
 	ByteArray
-	m_size   int16
 	m_cmd    int32 //命令符
 	m_topic  uint8 //一个游戏不需要那么多服务器
 	m_verid  uint8 //不需要那么多版本
 	m_format uint8 //解析方式
+	m_time   int64
 	m_pbody  int
 }
 
@@ -48,7 +49,7 @@ func NewPacket() ISocketPacket {
 }
 
 //通知网关
-func NewPacketWithArgs(cmd int, args ...interface{}) ISocketPacket {
+func NewPackArgs(cmd int, args ...interface{}) ISocketPacket {
 	this := NewPacket()
 	this.WriteBegin(cmd)
 	this.WriteValue(args...)
@@ -57,7 +58,7 @@ func NewPacketWithArgs(cmd int, args ...interface{}) ISocketPacket {
 }
 
 //通知其他
-func NewPacketWithTopic(cmd int, topic int, args ...interface{}) ISocketPacket {
+func NewPackTopic(cmd int, topic int, args ...interface{}) ISocketPacket {
 	this := NewPacket()
 	this.WriteBeginWithTopic(cmd, topic)
 	this.WriteValue(args...)
@@ -65,9 +66,11 @@ func NewPacketWithTopic(cmd int, topic int, args ...interface{}) ISocketPacket {
 	return this
 }
 
-func NewPacketWithBytes(bits []byte) ISocketPacket {
+//直接引用字段
+func NewPackBytes(bits []byte) ISocketPacket {
 	this := new(SocketPacket)
 	this.InitByteArrayWithBits(bits)
+	this.ReadBegin()
 	return this
 }
 
@@ -126,25 +129,21 @@ func (this *SocketPacket) WriteBeginWithTopic(cmd int, topic int) interface{} {
 	this.Reset() //每次都会冲掉
 	this.SetCmd(cmd)
 	this.SetTopic(topic)
-	this.m_size = 0
-	this.WriteValue(this.m_size, this.m_cmd, this.m_topic, this.m_verid, this.m_format)
+	this.m_time = gutil.GetNano()
+	this.WriteValue(this.m_cmd, this.m_topic, this.m_verid, this.m_format, this.m_time)
 	this.m_pbody = this.Pos()
 	return this
 }
 
 func (this *SocketPacket) WriteEnd() interface{} {
-	pos := this.Pos()
 	this.SetBegin()
-	this.m_size = int16(pos) - HEAD_SIZE
-	this.WriteValue(this.m_size)
-	this.SetPos(pos)
 	return this
 }
 
 //reads
 func (this *SocketPacket) ReadBegin() interface{} {
 	this.SetBegin()
-	this.ReadValue(&this.m_size, &this.m_cmd, &this.m_topic, &this.m_verid, &this.m_format)
+	this.ReadValue(&this.m_cmd, &this.m_topic, &this.m_verid, &this.m_format, &this.m_time)
 	this.m_pbody = this.Pos()
 	return this
 }
@@ -157,4 +156,8 @@ func (this *SocketPacket) ReadEnd() interface{} {
 func (this *SocketPacket) GetBody() []byte {
 	this.SetPos(this.BodyPos())
 	return this.ReadBytes(0)
+}
+
+func (this *SocketPacket) Print() {
+	fmt.Println(this.Cmd(), "网络消耗:", gutil.NanoStr(gutil.GetNano()-this.m_time))
 }

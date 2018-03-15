@@ -1,8 +1,8 @@
 package world
 
 import "app/command"
-import "fat/gnet"
-import "app/config"
+import "ants/gnet"
+import "ants/conf"
 
 //踢人
 func packet_kick_player(code int16, player *GamePlayer) gnet.IBytes {
@@ -27,7 +27,7 @@ func packet_logon_result(code int16, uid int32, session uint64, body []byte) gne
 //直接发送给客户端
 func packet_send_client(uid int32, session uint64, cmd int, fromid int32, body []byte) gnet.IBytes {
 	psend := gnet.NewPacket()
-	psend.WriteBeginWithTopic(cmd, config.TOPIC_CLIENT)
+	psend.WriteBeginWithTopic(cmd, conf.TOPIC_CLIENT)
 	psend.WriteValue(uid, session) //网关校正
 	psend.WriteValue(fromid)
 	psend.WriteBytes(body)

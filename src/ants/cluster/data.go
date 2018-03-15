@@ -1,4 +1,6 @@
-package nsc
+package cluster
+
+import "ants/conf"
 
 //路由的数据（可以添加更多）
 type IDataRoute interface {
@@ -12,6 +14,7 @@ type IDataRoute interface {
 	Port() int
 	Type() int
 	State() int
+	SetStatus(int)
 }
 
 //class data
@@ -20,11 +23,17 @@ type DataRoute struct {
 	addr    string
 	name    string
 	topics  []int
+	port    int
+	mtype   int
+	state   int
 }
 
-func NewDataRouteWithArgs(id int, addr string, name string, topics ...int) IDataRoute {
-	this := &DataRoute{routeid: id, addr: addr, name: name, topics: topics}
-	return this
+func NewDataRouteWithVo(vo *conf.RouteVo) IDataRoute {
+	return &DataRoute{routeid: vo.Id, addr: vo.Addr, name: vo.Name, topics: vo.Topic, port: vo.Port, mtype: vo.Type}
+}
+
+func NewDataRoute(port int) IDataRoute {
+	return NewDataRouteWithVo(conf.GetRouter(port))
 }
 
 func (this *DataRoute) SetArgs(id int, addr string, name string, topics ...int) {
@@ -47,15 +56,19 @@ func (this *DataRoute) Topics() []int {
 }
 
 func (this *DataRoute) Port() int {
-	return 0
+	return this.port
 }
 
 func (this *DataRoute) Type() int {
-	return 0
+	return this.mtype
 }
 
 func (this *DataRoute) State() int {
-	return 0
+	return this.state
+}
+
+func (this *DataRoute) SetStatus(val int) {
+	this.state = val
 }
 
 func (this *DataRoute) HasTopic(topic int) bool {

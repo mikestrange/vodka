@@ -1,7 +1,7 @@
 package gsys
 
 import (
-	"fat/gutil"
+	"fmt"
 	"sync/atomic"
 	"time"
 )
@@ -44,7 +44,7 @@ func Forever(delay int, block func()) *time.Ticker {
 	tm := time.NewTicker(tdelay(delay) * time.Millisecond)
 	go func() {
 		defer tm.Stop()
-		defer gutil.TryError("Ticker Forever Err")
+		defer check_error()
 		for {
 			<-tm.C
 			block()
@@ -57,7 +57,7 @@ func SetTimeout(delay int, count int, block func()) *time.Ticker {
 	tm := time.NewTicker(tdelay(delay) * time.Millisecond)
 	go func() {
 		defer tm.Stop()
-		defer gutil.TryError("Ticker Timeout Err")
+		defer check_error()
 		for {
 			<-tm.C
 			if count <= 0 {
@@ -72,4 +72,10 @@ func SetTimeout(delay int, count int, block func()) *time.Ticker {
 		}
 	}()
 	return tm
+}
+
+func check_error() {
+	if err := recover(); err != nil {
+		fmt.Println("Ticker Timeout Err :", err)
+	}
 }

@@ -1,7 +1,7 @@
 package world
 
-import "fat/gnet"
-import "fat/gutil"
+import "ants/gnet"
+import "ants/gutil"
 
 //世界角色
 type GamePlayer struct {

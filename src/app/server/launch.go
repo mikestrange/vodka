@@ -1,8 +1,7 @@
 package server
 
-import "app/config"
+import "ants/conf"
 
-//
 import "app/server/gate"
 import "app/server/logon"
 import "app/server/world"
@@ -16,20 +15,20 @@ func init() {
 func Launch(name string) {
 	switch name {
 	case "gate":
-		go gate.ServerLaunch(config.GATE_PORT)
+		go gate.ServerLaunch(conf.PORT_GATE)
 	case "login":
-		go logon.ServerLaunch(config.LOGIN_PORT)
+		go logon.ServerLaunch(conf.PORT_LOGIN)
 	case "game":
-		go game.ServerLaunch(config.GAME_PORT)
+		go game.ServerLaunch(conf.PORT_GAME)
 	case "world":
-		go world.ServerLaunch(config.WORLD_PORT)
+		go world.ServerLaunch(conf.PORT_WORLD)
 	case "chat":
-		go chat.ServerLaunch(config.CHAT_PORT)
+		go chat.ServerLaunch(conf.PORT_CHAT)
 	default:
 		Launch("gate")
 		Launch("login")
 		Launch("world")
 		Launch("chat")
-		Launch("login")
+		Launch("game")
 	}
 }

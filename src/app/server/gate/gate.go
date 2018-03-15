@@ -1,94 +1,80 @@
 package gate
 
 import (
+	"ants/cluster"
+	"ants/conf"
+	"ants/gnet"
 	"app/command"
-	"app/config"
-	"fat/gnet"
-	"fat/gnet/nsc"
-	"fat/gutil"
 	"fmt"
 )
 
 var logon *LogonMode
-var router nsc.IRemoteScheduler
-var mode gutil.IModeAccessor
+var router cluster.INetCluster
 
 func init() {
 	logon = NewLogonMode()
-	//基础设施
-	router, mode = command.SetRouter(config.GATE_PORT, events, nil)
+}
+
+func on_gate_handle(block interface{}, args ...interface{}) {
+	switch block.(type) {
+	case func(gnet.ISocketPacket):
+		block.(func(gnet.ISocketPacket))(args[1].(gnet.ISocketPacket))
+	case func(*GateSession, gnet.ISocketPacket):
+		block.(func(*GateSession, gnet.ISocketPacket))(args[0].(*GateSession), args[1].(gnet.ISocketPacket))
+	case func(*GateSession):
+		block.(func(*GateSession))(args[0].(*GateSession))
+	case func(gnet.IBaseProxy):
+		block.(func(gnet.IBaseProxy))(args[0].(gnet.IBaseProxy))
+	default:
+		println("Err: no mode handle ")
+	}
 }
 
 //服务器的启动
 func ServerLaunch(port int) {
-	gnet.ListenAndRunServer(port, func(conn interface{}) {
-		context := gnet.NewConn(conn)
-		defer context_close_handle(context)
-		gnet.LoopConnWithPing(context, func(tx gnet.INetContext, data interface{}) {
-			pack := data.(gnet.ISocketPacket)
-			//println("gate>", pack.Cmd(), pack.Topic())
+	mode := command.SetMode(on_gate_handle, events, false)
+	//
+	router = command.SetRouter(port, on_router_block)
+	//
+	gnet.NewTcpServer(port, func(tx gnet.INetContext) gnet.INetProxy {
+		session := NewSession(tx)
+		tx.SetHandle(func(event int, bits []byte) {
+			pack := gnet.NewPackBytes(bits)
 			switch pack.Topic() {
-			case config.TOPIC_GATE:
-				on_context_handle(tx, pack)
-			case config.TOPIC_CLIENT:
-				on_client_handle(pack)
-			default:
-				on_topic_handle(tx, pack)
+			case conf.TOPIC_GATE: //自身处理
+				{
+					mode.Done(pack.Cmd(), session, pack)
+				}
+			case conf.TOPIC_CLIENT: //直接推送给客户端
+				{
+					//获取客户端的头
+					UserID, SessionID := pack.ReadInt(), pack.ReadUInt64()
+					//获取用户
+					if session, ok := logon.GetUserBySession(UserID, SessionID); ok {
+						body := pack.ReadBytes(0)
+						session.Send(gnet.NewPackArgs(pack.Cmd(), body))
+					}
+				}
+			default: //通知模块
+				{
+					if session.IsLogin() {
+						player := session.Player
+						body := pack.GetBody()
+						psend := gnet.NewPackArgs(pack.Cmd(), player.UserID, player.GateID, player.SessionID, body)
+						router.Send(pack.Topic(), psend)
+					} else {
+						fmt.Println("连接用户尚未登录")
+					}
+				}
 			}
 		})
-	})
+		return session
+	}).Start()
 }
 
-//环境自身的处理
-func on_context_handle(tx gnet.INetContext, pack gnet.ISocketPacket) {
-	//如果登录走登录协议，不是登录校正登录后再处理(目前都可以)
-	mode.Done(pack.Cmd(), tx, pack)
-}
-
-//通知其他模块(注入uid,serid,sessionid)
-func on_topic_handle(tx gnet.INetContext, pack gnet.ISocketPacket) {
-	if data, ok := check_logon(tx); ok {
-		body := pack.GetBody()
-		psend := gnet.NewPacketWithArgs(pack.Cmd(), data.UserID, data.GateID, data.SessionID, body)
-		router.Send(pack.Topic(), psend)
-	} else {
-		fmt.Println("连接用户尚未登录")
-	}
-}
-
-//派送给用户(这里属于异步,要校正会话ID)
-func on_client_handle(pack gnet.ISocketPacket) {
-	//获取客户端的头
-	UserID, SessionID := pack.ReadInt(), pack.ReadUInt64()
-	//获取用户
-	if player, ok := logon.GetUserBySession(UserID, SessionID); ok {
-		body := pack.ReadBytes(0)
-		player.Conn.Send(gnet.NewPacketWithArgs(pack.Cmd(), body))
-	}
-}
-
-//是否登陆
-func check_logon(tx gnet.INetContext) (*UserData, bool) {
-	client := tx.Client()
-	switch client.(type) {
-	case *UserData:
-		return client.(*UserData), client.(*UserData).Status == LOGON_OK
-	default:
-	}
-	return nil, false
-}
-
-//关闭时候处理
-func context_close_handle(tx gnet.INetContext) {
-	if data, ok := check_logon(tx); ok {
-		tx.SetClient(nil)
-		//登录等待列表
-		logon.CompleteLogon(data.UserID, data.SessionID)
-		//登录成功后的删除
-		logon.RemoveUserWithSession(data.UserID, data.SessionID)
-		//通知世界
-		router.Send(config.TOPIC_WORLD, packet_world_delplayer(data.UserID, data.GateID, data.SessionID))
-	} else {
-		println("不是登录的客户端>")
+func on_router_block(node cluster.INodeRouter, data interface{}) {
+	pack := data.(gnet.ISocketPacket)
+	if pack.Cmd() == gnet.EVENT_HEARTBEAT_PINT {
+		node.Push(gnet.NewPackArgs(gnet.EVENT_HEARTBEAT_PINT))
 	}
 }

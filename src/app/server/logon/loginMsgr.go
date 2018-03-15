@@ -1,9 +1,9 @@
 package logon
 
 //import "app/model"
-import "app/config"
 import "app/command"
-import "fat/gnet"
+import "ants/gnet"
+import "ants/conf"
 import "fmt"
 
 var events map[int]interface{} = map[int]interface{}{
@@ -32,9 +32,9 @@ func on_logon(packet gnet.ISocketPacket) {
 	var body []byte = []byte{}
 	//错误直接返回
 	if err_code != 0 {
-		router.Send(config.TOPIC_WORLD, pack_logon_result(int16(err_code), UserID, SerID, SessionID, body))
+		router.Send(conf.TOPIC_WORLD, pack_logon_result(int16(err_code), UserID, SerID, SessionID, body))
 	} else {
-		router.Send(config.TOPIC_WORLD, pack_logon_result(int16(err_code), UserID, SerID, SessionID, body))
+		router.Send(conf.TOPIC_WORLD, pack_logon_result(int16(err_code), UserID, SerID, SessionID, body))
 	}
 }
 

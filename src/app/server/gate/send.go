@@ -1,6 +1,6 @@
 package gate
 
-import "fat/gnet"
+import "ants/gnet"
 import "app/command"
 
 //登录通知

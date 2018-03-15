@@ -1,7 +1,7 @@
 package game
 
 import "fmt"
-import "fat/gnet"
+import "ants/gnet"
 import "app/command"
 
 var events map[int]interface{} = map[int]interface{}{

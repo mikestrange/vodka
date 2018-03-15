@@ -3,12 +3,8 @@ package main
 import "app"
 import "app/server"
 
-import "fat/gutil"
-
-//import "fat/gsys"
-import "fat/glog"
-
-//import "fat/gnet"
+import "ants/gutil"
+import "ants/glog"
 
 func main() {
 	glog.LogAndRunning(glog.LOG_DEBUG, 100000)
@@ -21,30 +17,34 @@ func main() {
 	} else if gutil.MatchSys(1, "test") {
 		app.Test(glog.Int(2, gutil.SysArgs(), 0))
 	} else {
-		//server.Launch() //启动服务器
+		//server.Launch("") //启动服务器
 		client_input()
 	}
+	//test()
 	gutil.Add(1)
 	gutil.Wait()
 }
 
 func client_input() {
-	glog.GoAndRunningInput(func(str []string) {
+	glog.Input(func(str []string) {
 		switch str[0] {
 		case "exit":
 			gutil.ExitSystem(1)
 		case "in":
-			app.Test_login_send(glog.Int(1, str, 1))
+			//test_send()
+			go app.Test_login_send(glog.Int(1, str, 1))
 		case "out":
-			app.Test_remove_player(glog.Int(1, str, 1))
+			go app.Test_remove_player(glog.Int(1, str, 1))
 		case "on":
-			app.Test_get_online()
+			go app.Test_get_online()
 		case "all":
 			go app.Test_send_all()
 		case "test":
-			app.Test(glog.Int(1, str, 1))
+			go app.Test(glog.Int(1, str, 1))
 		case "test2":
-			app.Test_max_login(glog.Int(1, str, 1))
+			go app.Test_max_login(glog.Int(1, str, 1))
+		case "ser":
+			server.Launch(glog.Str(2, str, "all"))
 		}
 	})
 }

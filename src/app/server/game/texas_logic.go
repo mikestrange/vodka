@@ -1,12 +1,11 @@
 package game
 
 import (
+	"ants/gnet"
+	"ants/gsys"
+	"ants/gutil"
 	"app/command"
-	"app/config"
 	"app/server/game/texas"
-	"fat/gnet"
-	"fat/gsys"
-	"fat/gutil"
 	"sort"
 )
 
@@ -54,9 +53,12 @@ func (this *TexasLogic) InitTexasLogic() {
 	this.InitRobotCard()
 	this.m_chan = gsys.NewChannel()
 	//同步事务
-	this.m_chan.SetHandle(func(args interface{}) {
-		this.OnNotice(args.([]interface{})...)
-	})
+	go func() {
+		this.m_chan.Loop(func(args interface{}) {
+			this.OnNotice(args.([]interface{})...)
+		})
+	}()
+	//
 	this.m_timer = gsys.NewTimerWithChannel(this.m_chan)
 	this.m_timer.SetHandle(func(data interface{}) {
 		switch data.(int) {
@@ -92,7 +94,7 @@ func (this *TexasLogic) OnNotice(args ...interface{}) {
 }
 
 func (this *TexasLogic) PushNotice(args ...interface{}) {
-	this.m_chan.AsynPush(args)
+	this.m_chan.Push(args)
 }
 
 //通知所有
@@ -101,7 +103,7 @@ func (this *TexasLogic) notice_players(cmd int, data interface{}) {
 	for _, v := range this.players {
 		list = append(list, v)
 	}
-	gnet.NewPacketWithTopic(cmd, config.TOPIC_CLIENT, data)
+	//gnet.NewPacketWithTopic(cmd, config.TOPIC_CLIENT, data)
 	//	for _, v := range list {
 
 	//	}
@@ -137,8 +139,6 @@ func (this *TexasLogic) OnLaunch(tid int, data interface{}) {
 	this.table_free = 50
 	this.m_dealer_id = 0
 	this.max_look = 200
-	//开始事务
-	this.m_chan.Start()
 	//jackpot
 	this.InitJackpot(this.seat_count)
 	//seats

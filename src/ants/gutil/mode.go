@@ -5,7 +5,7 @@ import (
 )
 
 //回调
-type ModeBlock func(interface{}, int, ...interface{})
+type ModeBlock func(interface{}, ...interface{})
 
 //模块控制
 type IModeAccessor interface {
@@ -70,7 +70,7 @@ func (this *ModeAccessor) Get(cmd int) interface{} {
 func (this *ModeAccessor) Done(cmd int, args ...interface{}) bool {
 	if block := this.Get(cmd); block != nil {
 		if this.handle != nil {
-			this.handle(block, cmd, args...)
+			this.handle(block, args...)
 			return true
 		} else {
 			fmt.Println("No Mode Block Err:", cmd)

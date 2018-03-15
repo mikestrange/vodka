@@ -1,10 +1,10 @@
 package gate
 
 import (
+	"ants/conf"
+	"ants/gnet"
+	"ants/gutil"
 	"app/command"
-	"app/config"
-	"fat/gnet"
-	"fat/gutil"
 	"fmt"
 )
 
@@ -13,60 +13,55 @@ var events map[int]interface{} = map[int]interface{}{
 	command.CLIENT_LOGOUT:       on_logout,
 	command.SERVER_LOGON_RESULT: on_logon_result,
 	command.SERVER_KICK_PLAYER:  on_kick,
-	//RPG
-	command.CLIENT_MOVE:   on_move,
-	command.CLIENT_ACTION: on_action,
-	command.CLIENT_RESULT: on_result,
 }
 
 //客户端请求登录
-func on_logon(tx gnet.INetContext, packet gnet.ISocketPacket) {
-	if tx.Client() != nil {
-		fmt.Println("Context is Logining")
+func on_logon(session *GateSession, packet gnet.ISocketPacket) {
+	if session.IsBegin() {
 		return
 	}
+	session.LoginWait()
 	//添加到登陆列表里面
-	player := &UserData{
-		UserID:    packet.ReadInt(),
-		PassWord:  packet.ReadString(),
-		GateID:    int32(router.Data().RouteID()),
-		SessionID: router.UsedSessionID(),
-		RegTime:   gutil.GetTimer()}
-	//绑定客户端(超时关闭)
-	tx.SetClient(player)
+	player := session.Player
+	//
+	player.UserID = packet.ReadInt()
+	player.PassWord = packet.ReadString()
+	player.GateID = int32(router.Data().RouteID())
+	player.SessionID = router.UsedSessionID()
+	player.RegTime = gutil.GetTimer()
 	//加入登陆队列
-	logon.CommitLogon(&GamePlayer{tx, player})
+	logon.CommitLogon(session)
 	fmt.Println(fmt.Sprintf("Logon Begin# uid=%d, session=%v serid=%d", player.UserID, player.SessionID, player.GateID))
-	router.Send(config.TOPIC_LOGON, packet_logon_notice(player.UserID, player.PassWord, player.GateID, player.SessionID))
+	router.Send(conf.TOPIC_LOGON, packet_logon_notice(player.UserID, player.PassWord, player.GateID, player.SessionID))
 }
 
 //世界返回登录结果
-func on_logon_result(tx gnet.INetContext, packet gnet.ISocketPacket) {
+func on_logon_result(packet gnet.ISocketPacket) {
 	code, UserID, SessionID := packet.ReadShort(), packet.ReadInt(), packet.ReadUInt64()
 	fmt.Println(fmt.Sprintf("Login Result# code=%d, uid=%d, session=%v", code, UserID, SessionID))
-	if player, ok := logon.CompleteLogon(UserID, SessionID); ok {
+	if session, ok := logon.CompleteLogon(UserID, SessionID); ok {
 		if code == 0 {
-			player.Player.Status = LOGON_OK
-			if oplayer, ok2 := logon.AddUser(UserID, player); ok2 { //踢掉上一个用户
+			session.LoginOk()
+			if oplayer, ok2 := logon.AddUser(UserID, session); ok2 { //踢掉上一个用户
 				kick_player(oplayer, 1)
 			}
 			//推送给自己
 			body := packet.ReadBytes(0) //自己的一些信息
-			player.Conn.Send(pack_logon_result(0, body))
+			session.Send(pack_logon_result(0, body))
 		} else {
-			player.Conn.SetClient(nil)
-			player.Conn.Send(pack_logon_result(code))
-			player.Conn.Close()
+			session.Send(pack_logon_result(code))
+			session.Close()
 		}
 	}
 }
 
 //客户端主动通知
-func on_logout(tx gnet.INetContext, packet gnet.ISocketPacket) {
-	tx.Close() //退出的时候会通知世界
+func on_logout(session *GateSession) {
+	//直接被关闭了
+	session.Kill()
 }
 
-//被踢(一般世界发送)
+//被踢(世界通知的命令)
 func on_kick(packet gnet.ISocketPacket) {
 	UserID, _ := packet.ReadInt(), packet.ReadUInt64()
 	code := packet.ReadShort()
@@ -79,10 +74,10 @@ func on_kick(packet gnet.ISocketPacket) {
 }
 
 //commom
-func kick_player(player *GamePlayer, code int16) {
+func kick_player(session *GateSession, code int16) {
 	//被踢的时候不会上报
-	fmt.Println(fmt.Sprintf("Kick User ok# code=%d uid=%d, session=%v", code, player.Player.UserID, player.Player.SessionID))
-	player.Conn.SetClient(nil)
-	player.Conn.Send(packet_kick_user(code))
-	player.Conn.Close()
+	fmt.Println(fmt.Sprintf("Kick User ok# code=%d uid=%d, session=%v", code, session.Player.UserID, session.Player.SessionID))
+	session.KickOut()
+	session.Send(packet_kick_user(code))
+	session.Close()
 }

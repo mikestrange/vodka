@@ -1,9 +1,11 @@
 package command
 
-/*命令分2种，
+/*命令分2种， 100开始 100以下为系统
 1,无ON开始的为发送
 2,回答的为ON开始
 */
+
+const COMMAND_BEGIN_INT = 100
 
 //cmds
 const (
