@@ -18,13 +18,13 @@
 *.o
 *.a
 
-godark
+#godark
 
 pkg/
 bin/
 
 src/github.com
 src/golang.org
-src/src
+#src/src
 
 src/app/server/game
