@@ -10,8 +10,8 @@ type GateSession struct {
 
 func NewSession(tx gnet.INetContext) *GateSession {
 	this := new(GateSession)
-	this.Player = new(UserData)
 	this.SetContext(tx)
+	this.Player = new(UserData)
 	return this
 }
 

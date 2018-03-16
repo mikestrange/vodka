@@ -106,7 +106,7 @@ const MB_BIT = KB_BIT * KB_BIT
 const GB_BIT = KB_BIT * MB_BIT
 const TB_BIT = KB_BIT * GB_BIT
 
-func MemString(val uint64) string {
+func MemStr(val int64) string {
 	if val > TB_BIT {
 		return fmt.Sprintf("%dTB", val/TB_BIT)
 	} else if val > GB_BIT {

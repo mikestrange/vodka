@@ -17,9 +17,9 @@ type INetProxy interface {
 
 //网络接口
 type INetConn interface {
-	Shutdown(int) int
-	WriteBytes([]byte) int
-	ReadBytes(int, func([]byte))
+	Shutdown(int) int            //直接关闭
+	WriteBytes([]byte) int       //无协议写入
+	ReadBytes(int, func([]byte)) //无协议读取
 }
 
 //网络环境接口 :双通道读写(内部使用)
@@ -37,7 +37,7 @@ type INetContext interface {
 	SetHandle(ContextBlock)
 	//默认
 	SetProcessor(INetProcessor)
-	//发送多个包
+	//发送多个包(直接发送)
 	Send(...interface{})
 }
 
@@ -52,8 +52,12 @@ type INetChan interface {
 
 //解码-编码
 type INetProcessor interface {
+	//解码直接获得消息
 	Unmarshal([]byte) []interface{}
+	//Message() []interface{}
+	//编码
 	Marshal(...interface{}) []byte
+	//Commit() []byte
 }
 
 //获得字节接口
@@ -61,7 +65,7 @@ type IBytes interface {
 	Bytes() []byte
 }
 
-//直接进入(自身作为条件)
+//快速启动服务器
 func ListenAndRunServer(port int, block func(IBaseProxy)) INetServer {
 	ser := NewTcpServer(port, func(tx INetContext) INetProxy {
 		session := NewBaseProxy(tx)

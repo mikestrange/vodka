@@ -90,7 +90,7 @@ func (this *context) AsSocket() bool {
 }
 
 func (this *context) Send(args ...interface{}) {
-	this.AsynSend(this.decode.Marshal(args...))
+	this.csend.Push(this.decode.Marshal(args...))
 }
 
 // interface INetConn
@@ -108,7 +108,25 @@ func (this *context) Shutdown(used int) int {
 }
 
 func (this *context) WriteBytes(bits []byte) int {
+	//	size := len(bits)
+	//	buffSize := NET_BUFF_NEW_SIZE
+	//	if buffSize > size {
+	//		buffSize = size
+	//	}
+	//	pos := 0
+	//	for {
+	//		b := bits[pos : pos+buffSize]
+	//		pos = pos + buffSize
+	//		if sub := size - pos; sub < buffSize {
+	//			buffSize = sub
+	//		}
+	//		if pos == size {
+	//			break
+	//		}
+	//		this.conn.Write(b)
+	//	}
 	if ret, err := this.conn.Write(bits); err == nil {
+		//println("write:", ret)
 		return ret
 	}
 	return SIGN_SEND_ERROR
@@ -131,6 +149,7 @@ func (this *context) ReadBytes(size int, block func([]byte)) {
 	for {
 		ret, err := this.conn.Read(bits)
 		if err == nil {
+			//println("read:", ret)
 			block(bits[:ret])
 		} else {
 			if err == io.EOF {
@@ -146,7 +165,7 @@ func (this *context) ReadBytes(size int, block func([]byte)) {
 
 //interface INetProxy
 func (this *context) Run() {
-	this.ReadBytes(NET_BUFF_MAXLEN, func(bits []byte) {
+	this.ReadBytes(NET_BUFF_NEW_SIZE, func(bits []byte) {
 		list := this.decode.Unmarshal(bits)
 		for i := range list {
 			//this.AsynRead(list[i])

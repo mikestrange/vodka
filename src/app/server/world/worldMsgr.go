@@ -70,7 +70,6 @@ func on_kick_player(session gnet.IBaseProxy, pack gnet.ISocketPacket) {
 func on_notice_players(pack gnet.ISocketPacket) {
 	uid, cmd, body := pack.ReadInt(), int(pack.ReadInt()), pack.ReadBytes(0)
 	fmt.Println("Notice World # user=", uid, ",cmd=", cmd, ",size=", len(body))
-	//更快的方法
 	NoticeAllUser(func(player *GamePlayer) interface{} {
 		return packet_send_client(player.UserID, player.SessionID, cmd, uid, body)
 	})

@@ -1,4 +1,4 @@
-# ants(轻级别框架) 
+# ants(轻量级框架) 
 ----------begin-----------
 
  [一些你能用到的实用的lib]
@@ -12,6 +12,7 @@ go get github.com/garyburd/redigo
 go get github.com/go-sql-driver/mysql
 
 ----------end--------------
+
 
 ###测试服务器
 1，直接运行sh make.sh启动服务器(gate, chat, logon, world, game)

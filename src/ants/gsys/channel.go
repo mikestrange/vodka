@@ -25,7 +25,7 @@ func (this *buffChan) init(sz int) {
 }
 
 func (this *buffChan) Push(data interface{}) bool {
-	return this.done_push(false, data)
+	return this.doPush(false, data)
 }
 
 func (this *buffChan) Pull() (interface{}, bool) {
@@ -37,7 +37,7 @@ func (this *buffChan) Pull() (interface{}, bool) {
 }
 
 func (this *buffChan) AsynClose() {
-	this.done_push(true, nil)
+	this.doPush(true, nil)
 }
 
 func (this *buffChan) Close() {
@@ -60,7 +60,7 @@ func (this *buffChan) Loop(block func(interface{})) {
 }
 
 //private
-func (this *buffChan) done_push(closed bool, data interface{}) bool {
+func (this *buffChan) doPush(closed bool, data interface{}) bool {
 	this.mutex.Lock()
 	if this.closeFlag {
 		this.mutex.Unlock()
@@ -69,4 +69,8 @@ func (this *buffChan) done_push(closed bool, data interface{}) bool {
 	this.buff <- &chanItem{closed, data}
 	this.mutex.Unlock()
 	return true
+}
+
+func (this *buffChan) isOverFull() bool {
+	return len(this.buff) == cap(this.buff)
 }

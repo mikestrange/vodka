@@ -14,12 +14,18 @@ type buffChan struct {
 }
 
 func newChan(sz int) INetChan {
-	this := &buffChan{buff: make(chan *buffSign, sz), closeFlag: false}
+	this := new(buffChan)
+	this.init(sz)
 	return this
 }
 
+func (this *buffChan) init(sz int) {
+	this.buff = make(chan *buffSign, sz)
+	this.closeFlag = false
+}
+
 func (this *buffChan) Push(data []byte) bool {
-	return this.done_push(false, data)
+	return this.doPush(false, data)
 }
 
 func (this *buffChan) Pull() ([]byte, bool) {
@@ -41,7 +47,7 @@ func (this *buffChan) Close() {
 }
 
 func (this *buffChan) AsynClose() {
-	this.done_push(true, nil)
+	this.doPush(true, nil)
 }
 
 func (this *buffChan) Loop(block func([]byte)) {
@@ -55,9 +61,8 @@ func (this *buffChan) Loop(block func([]byte)) {
 }
 
 //push
-func (this *buffChan) done_push(closed bool, data []byte) bool {
+func (this *buffChan) doPush(closed bool, data []byte) bool {
 	this.Lock()
-	// len(this.buff) == cap(this.buff) 满了
 	if this.closeFlag {
 		this.Unlock()
 		return false
@@ -65,4 +70,8 @@ func (this *buffChan) done_push(closed bool, data []byte) bool {
 	this.buff <- &buffSign{data: data, closed: closed}
 	this.Unlock()
 	return true
+}
+
+func (this *buffChan) isOverFull() bool {
+	return len(this.buff) == cap(this.buff)
 }

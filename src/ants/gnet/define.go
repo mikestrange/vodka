@@ -16,14 +16,14 @@ const (
 	SIGN_CLOSE_ERROR_READ = 3
 	SIGN_CLOSE_ERROR_SEND = 4
 	SIGN_CLOSE_HEARTBEAT  = 5
-	//chan sign
+	//默认: chan size
 	NET_CHAN_SIZE = 1000
-	//服务器最大socket链接
+	//默认: max server conn
 	NET_SERVER_CONN_SIZE = 10000
-	//pack
-	HEAD_SIZE       = 2
-	NET_BUFF_MINLEN = 1
-	NET_BUFF_MAXLEN = 1024 * 10 //(10MB)
+	//默认: pack min > i < pack max
+	NET_BUFF_NEW_SIZE = 1024 * 10 //reads
+	NET_BUFF_MINLEN   = 1
+	NET_BUFF_MAXLEN   = 1024 * 1024 * 50 //(50MB)
 	//心跳
 	PING_TIME = 1000 * 60 * 5 //心跳时间，秒(1000 * 60 * 5)
 )
@@ -41,6 +41,6 @@ func ToBytes(data interface{}) []byte {
 	return nil
 }
 
-func check_size(size int) bool {
+func check_size_ok(size int) bool {
 	return size >= NET_BUFF_MINLEN && size <= NET_BUFF_MAXLEN
 }
