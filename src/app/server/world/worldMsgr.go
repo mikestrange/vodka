@@ -63,7 +63,7 @@ func on_kick_player(session gnet.IBaseProxy, pack gnet.ISocketPacket) {
 		fmt.Println("Kick Err# no user:", uid)
 		session.Send(gnet.NewPackArgs(pack.Cmd(), int16(1), uid))
 	}
-	session.Close()
+	session.CloseWrite()
 }
 
 //通知世界所有角色(可以直接连世界)
@@ -79,7 +79,7 @@ func on_online_player(session gnet.IBaseProxy, pack gnet.ISocketPacket) {
 	onlines := int32(len(players))
 	fmt.Println("当前在线人数:", onlines)
 	session.Send(gnet.NewPackArgs(command.SERVER_WORLD_GET_ONLINE_NUM, onlines))
-	session.Close()
+	session.CloseWrite()
 }
 
 func on_notice_test(pack gnet.ISocketPacket) {

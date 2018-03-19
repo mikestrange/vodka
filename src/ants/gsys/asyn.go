@@ -26,6 +26,10 @@ func NewChannel() IAsynDispatcher {
 	return newChannel(ASYN_SIZE)
 }
 
+func NewChannelSize(sz int) IAsynDispatcher {
+	return newChannel(sz)
+}
+
 func NewBuffer() IAsynDispatcher {
 	return newBuffer(ASYN_SIZE)
 }

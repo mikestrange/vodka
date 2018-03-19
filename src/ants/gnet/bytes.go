@@ -211,6 +211,8 @@ func (this *ByteArray) _read_val(val interface{}) {
 	switch val.(type) {
 	case *string:
 		*val.(*string) = this.ReadString()
+	case *int:
+		*val.(*int) = int(this.ReadInt())
 	default:
 		this._read(val)
 	}
@@ -331,6 +333,8 @@ func (this *ByteArray) _write_val(val interface{}) {
 		this.WriteString(val.(string))
 	case []byte:
 		this.WriteBytes(val.([]byte))
+	case int:
+		this.WriteInt(int32(val.(int)))
 	case IByteArray:
 		this.WriteBytes(val.(IByteArray).Bytes())
 	default:

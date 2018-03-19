@@ -10,7 +10,7 @@ var router cluster.INetCluster
 //服务器的启动(快速启动)
 func ServerLaunch(port int) {
 	//模块调度
-	mode := command.SetMode(nil, events, true)
+	mode := command.SetMode(nil, events, false)
 	//分布式路由
 	router = command.SetRouter(port, on_router_block)
 	//服务器快速启动

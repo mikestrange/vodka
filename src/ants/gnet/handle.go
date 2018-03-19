@@ -21,10 +21,6 @@ func (this *netProcessor) init() {
 
 func (this *netProcessor) Unmarshal(bits []byte) []interface{} {
 	this.Append(bits)
-	return this.Message()
-}
-
-func (this *netProcessor) Message() []interface{} {
 	var messages []interface{}
 	for {
 		if this.head_size == 0 {
@@ -60,8 +56,4 @@ func (this *netProcessor) Marshal(args ...interface{}) []byte {
 		}
 	}
 	return pack.Bytes()
-}
-
-func (this *netProcessor) Commit() []byte {
-	return nil
 }

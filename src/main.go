@@ -9,13 +9,17 @@ import "ants/gutil"
 import "ants/glog"
 import "ants/gnet"
 
-var send_size = 100000 //10MB
+import "ants/lib/gredis"
+import "ants/lib/gsql"
+
+var send_size = 10000 //10MB
 
 func test() {
 	gutil.Sleep(1000)
 	go gnet.ListenAndRunServer(8080, func(session gnet.IBaseProxy) {
 		session.Context().SetHandle(func(code int, bits []byte) {
-			session.Send(bits)
+			println("收到:", len(bits))
+			//session.Send(bits)
 		})
 	})
 
@@ -48,7 +52,10 @@ func main() {
 		app.Test(glog.Int(2, gutil.SysArgs(), int(gutil.GetTimer()-1521172200000)))
 	} else {
 		//server.Launch("") //启动服务器
+		go gredis.Test()
+		go gsql.Test()
 	}
+	test()
 	client_input()
 	//test()
 	gutil.Add(1)

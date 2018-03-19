@@ -29,8 +29,7 @@ type context struct {
 	used   int
 	client bool
 	conn   net.Conn
-	csend  INetChan
-	cread  INetChan
+	buffer gsys.IAsynDispatcher
 	handle ContextBlock
 	decode INetProcessor
 }
@@ -39,31 +38,20 @@ func (this *context) Init(conn net.Conn, size int, client bool) INetContext {
 	this.closed = false
 	this.conn = conn
 	this.client = client
-	this.used = SIGN_CLOSE_NULL
 	this.decode = NewSocketProcessor()
-	this.csend = newChan(size)
-	//this.cread = newChan(size)
+	this.buffer = gsys.NewChannelSize(size)
 	this.thread()
 	return this
 }
 
 func (this *context) thread() {
 	//写通道
-	go func(buff INetChan) {
-		buff.Loop(func(bits []byte) {
-			this.WriteBytes(bits)
+	go func(buff gsys.IAsynDispatcher) {
+		buff.Loop(func(bits interface{}) {
+			this.WriteBytes(ToBytes(bits))
 		})
-		this.Shutdown(SIGN_CLOSE_ERROR_SEND)
-	}(this.csend)
-	//	//读通道
-	//	go func(buff INetChan) {
-	//		buff.Loop(func(bits []byte) {
-	//			t := gutil.GetNano()
-	//			this.Done(EVENT_CONN_READ, bits)
-	//			println("Msg ##:", gutil.NanoStr(gutil.GetNano()-t), this.AsSocket())
-	//		})
-	//		this.Shutdown(SIGN_CLOSE_ERROR_READ)
-	//	}(this.cread)
+		this.Kill()
+	}(this.buffer)
 }
 
 //interface INetContext
@@ -75,14 +63,13 @@ func (this *context) SetProcessor(val INetProcessor) {
 	this.decode = val
 }
 
-func (this *context) Close() int {
-	return this.CloseSign(SIGN_CLOSE_OK)
+func (this *context) CloseWrite() error {
+	this.buffer.AsynClose()
+	return nil
 }
 
-func (this *context) CloseSign(used int) int {
-	code := this.setUsed(used)
-	this.csend.AsynClose()
-	return code
+func (this *context) CloseRead() error {
+	return nil
 }
 
 func (this *context) AsSocket() bool {
@@ -90,68 +77,38 @@ func (this *context) AsSocket() bool {
 }
 
 func (this *context) Send(args ...interface{}) {
-	this.csend.Push(this.decode.Marshal(args...))
+	this.Flush(this.decode.Marshal(args...))
 }
 
 // interface INetConn
-func (this *context) Shutdown(used int) int {
+func (this *context) Kill() error {
 	this.Lock()
+	defer this.Unlock()
 	if !this.closed {
 		this.closed = true
-		this.conn.Close()
-		//关闭读写
-		this.csend.Close()
-		//this.cread.Close()
+		this.buffer.Close()
+		return this.conn.Close()
 	}
-	this.Unlock()
-	return this.setUsed(used)
+	return nil
 }
 
-func (this *context) WriteBytes(bits []byte) int {
-	//	size := len(bits)
-	//	buffSize := NET_BUFF_NEW_SIZE
-	//	if buffSize > size {
-	//		buffSize = size
-	//	}
-	//	pos := 0
-	//	for {
-	//		b := bits[pos : pos+buffSize]
-	//		pos = pos + buffSize
-	//		if sub := size - pos; sub < buffSize {
-	//			buffSize = sub
-	//		}
-	//		if pos == size {
-	//			break
-	//		}
-	//		this.conn.Write(b)
-	//	}
-	if ret, err := this.conn.Write(bits); err == nil {
-		//println("write:", ret)
-		return ret
+func (this *context) WriteBytes(bits []byte) bool {
+	if ret, err := this.conn.Write(bits); err != nil {
+		fmt.Println("Write Err:", err, ret)
+		return false
 	}
-	return SIGN_SEND_ERROR
+	return true
 }
 
-func (this *context) ReadBytes(size int, block func([]byte)) {
-	if this.closed {
-		println("this conn is closed")
-		return
-	}
+func (this *context) ReadBytes(size int, block func([]byte)) int {
 	bits := make([]byte, size)
 	code := SIGN_CLOSE_OK
-	//	defer func() {
-	//		if err := recover(); err != nil {
-	//			this.Shutdown(SIGN_CLOSE_ERROR_READ)
-	//		} else {
-	//			this.Shutdown(code)
-	//		}
-	//	}()
 	for {
 		ret, err := this.conn.Read(bits)
 		if err == nil {
-			//println("read:", ret)
 			block(bits[:ret])
 		} else {
+			fmt.Println("Close Ok:", err)
 			if err == io.EOF {
 				code = SIGN_CLOSE_DISTAL
 			} else {
@@ -160,21 +117,27 @@ func (this *context) ReadBytes(size int, block func([]byte)) {
 			break
 		}
 	}
-	this.Shutdown(code)
+	return code
+}
+
+func (this *context) check_error() {
+	if err := recover(); err != nil {
+		fmt.Println("Conn Err:", err)
+	}
 }
 
 //interface INetProxy
 func (this *context) Run() {
+	//defer this.check_error()
 	this.ReadBytes(NET_BUFF_NEW_SIZE, func(bits []byte) {
 		list := this.decode.Unmarshal(bits)
 		for i := range list {
-			//this.AsynRead(list[i])
 			this.Done(EVENT_CONN_READ, ToBytes(list[i]))
 		}
 	})
 }
 
-func (this *context) OnClose(code int) {
+func (this *context) OnClose() {
 	//override public
 }
 
@@ -187,26 +150,9 @@ func (this *context) Done(event int, bits []byte) {
 	}
 }
 
-func (this *context) setUsed(used int) int {
-	this.Lock()
-	if this.used == SIGN_CLOSE_NULL {
-		this.used = used
-	}
-	this.Unlock()
-	return this.used
-}
-
-func (this *context) AsynSend(data interface{}) {
-	if ok := this.csend.Push(ToBytes(data)); ok {
+func (this *context) Flush(data interface{}) {
+	if ok := this.buffer.Push(data); ok {
 		return
 	}
-	this.Shutdown(SIGN_CLOSE_ERROR_SEND)
-}
-
-//目前没使用
-func (this *context) AsynRead(data interface{}) {
-	if ok := this.cread.Push(ToBytes(data)); ok {
-		return
-	}
-	this.Shutdown(SIGN_CLOSE_ERROR_READ)
+	this.Kill()
 }

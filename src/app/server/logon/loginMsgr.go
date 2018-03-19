@@ -1,6 +1,8 @@
 package logon
 
-//import "app/model"
+import "ants/lib/gredis"
+
+//
 import "app/command"
 import "ants/gnet"
 import "ants/conf"
@@ -14,20 +16,24 @@ func on_logon(packet gnet.ISocketPacket) {
 	UserID, PassWord, SerID, SessionID := packet.ReadInt(), packet.ReadString(), packet.ReadInt(), packet.ReadUInt64()
 	fmt.Println(fmt.Sprintf("Logon Info# uid=%d, session=%v gateid=%d", UserID, SessionID, SerID))
 	err_code := 0
-	if false {
-		//      accout := new(model.AccountModel)
-		//		if accout.CheckLogon(UserID, PassWord) {
-		//			m_player := new(model.PlayerModel)
-		//			ret := m_player.GetPlayerInfo(UserID)
-		//			if ret == nil {
-		//				err_code = 2
-		//			} else {
-		//				//写入用户数据
-		//			}
-		//		} else {
-		//			err_code = 1
-		//		}
+	//
+	pwd, ok := gredis.Str(redis, gredis.ToUser(int(UserID), "pwd"))
+	if ok {
+		fmt.Println("redis 获取密码:", pwd, PassWord)
+		if pwd != PassWord {
+			err_code = 1
+		}
+	} else {
+		row := mysql.QueryRow("select pwd from account where uid = ?", UserID)
+		row.Scan(&pwd)
+		fmt.Println("mysql 获取密码:", pwd, PassWord)
+		if pwd != PassWord {
+			err_code = 1
+		}
+		//写入redis
+		redis.SetUser(int(UserID), "pwd", pwd, 0)
 	}
+	//
 	fmt.Println("Seach Result Code:", err_code, UserID, PassWord, SerID, SessionID)
 	var body []byte = []byte{}
 	//错误直接返回

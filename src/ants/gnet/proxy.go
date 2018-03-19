@@ -8,8 +8,8 @@ type IBaseProxy interface {
 	//提供了一些基础
 	Context() INetContext
 	Send(...interface{})
-	Close() //异步关闭
-	Kill()  //直接关闭
+	CloseWrite() //异步关闭
+	Kill()       //直接关闭
 	LivePing()
 	Ping() bool
 }
@@ -37,12 +37,12 @@ func (this *BaseProxy) Send(args ...interface{}) {
 	this.Context().Send(args...)
 }
 
-func (this *BaseProxy) Close() {
-	this.Context().Close()
+func (this *BaseProxy) CloseWrite() {
+	this.Context().CloseWrite()
 }
 
 func (this *BaseProxy) Kill() {
-	this.Context().Shutdown(SIGN_CLOSE_OK)
+	this.Context().Kill()
 }
 
 func (this *BaseProxy) LivePing() {
@@ -54,7 +54,7 @@ func (this *BaseProxy) Ping() bool {
 		this.pingFlag = true
 		return true
 	}
-	this.Context().CloseSign(SIGN_CLOSE_HEARTBEAT)
+	this.Context().Kill()
 	return false
 }
 
@@ -72,6 +72,6 @@ func (this *BaseProxy) Run() {
 	}
 }
 
-func (this *BaseProxy) OnClose(code int) {
+func (this *BaseProxy) OnClose() {
 	//只关心被关闭
 }

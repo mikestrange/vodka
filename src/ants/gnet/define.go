@@ -8,14 +8,14 @@ const (
 	EVENT_CONN_SEND      = 2
 	EVENT_HEARTBEAT_PINT = 3 //心跳
 	//close sign
-	SIGN_SEND_ERROR       = -2
-	SIGN_CLOSE_NULL       = -1
-	SIGN_CLOSE_OK         = 0
-	SIGN_CLOSE_DISTAL     = 1
-	SIGN_CLOSE_ERROR      = 2
-	SIGN_CLOSE_ERROR_READ = 3
-	SIGN_CLOSE_ERROR_SEND = 4
-	SIGN_CLOSE_HEARTBEAT  = 5
+	SIGN_CLOSE_OK     = 0 //自己关闭
+	SIGN_CLOSE_DISTAL = 1 //对方关闭
+	//	SIGN_CLOSE_ERROR      = 2
+	//	SIGN_CLOSE_ERROR_READ = 3
+	//	SIGN_CLOSE_ERROR_SEND = 4
+	//	SIGN_CLOSE_HEARTBEAT  = 5
+	//	SIGN_READ_ERROR       = 6
+	//	SIGN_SEND_ERROR       = 7
 	//默认: chan size
 	NET_CHAN_SIZE = 1000
 	//默认: max server conn

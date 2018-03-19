@@ -1,13 +1,13 @@
 package logon
 
-//只用来获取用户的数据，并发处理
-func init_redis() {
-	//stock.Redis().Connect("localhost", 6379, "")
-	//redis = stock.Redis()
-}
+import "ants/lib/gredis"
+import "ants/lib/gsql"
 
-func init_mysql() {
-	//client := link.Mysql()
-	//client.LinkAddr("127.0.0.1:3306", "root", "123456", "user_info")
-	//client.Connect(20)
+var redis gredis.IConn
+var mysql gsql.IConn
+
+//只用来获取用户的数据，并发处理
+func init_dber() {
+	redis = gredis.NewConn()
+	mysql = gsql.NewConn()
 }

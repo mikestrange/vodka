@@ -1,8 +1,5 @@
 package gnet
 
-import "ants/gutil"
-import "fmt"
-
 //private 基础包
 type ISocketPacket interface {
 	IByteArray
@@ -38,8 +35,8 @@ type SocketPacket struct {
 	m_topic  uint8 //一个游戏不需要那么多服务器
 	m_verid  uint8 //不需要那么多版本
 	m_format uint8 //解析方式
-	m_time   int64
-	m_pbody  int
+	//m_time   int64
+	m_pbody int
 }
 
 func NewPacket() ISocketPacket {
@@ -129,8 +126,8 @@ func (this *SocketPacket) WriteBeginWithTopic(cmd int, topic int) interface{} {
 	this.Reset() //每次都会冲掉
 	this.SetCmd(cmd)
 	this.SetTopic(topic)
-	this.m_time = gutil.GetNano()
-	this.WriteValue(this.m_cmd, this.m_topic, this.m_verid, this.m_format, this.m_time)
+	//this.m_time = gutil.GetNano()
+	this.WriteValue(this.m_cmd, this.m_topic, this.m_verid, this.m_format)
 	this.m_pbody = this.Pos()
 	return this
 }
@@ -143,7 +140,7 @@ func (this *SocketPacket) WriteEnd() interface{} {
 //reads
 func (this *SocketPacket) ReadBegin() interface{} {
 	this.SetBegin()
-	this.ReadValue(&this.m_cmd, &this.m_topic, &this.m_verid, &this.m_format, &this.m_time)
+	this.ReadValue(&this.m_cmd, &this.m_topic, &this.m_verid, &this.m_format)
 	this.m_pbody = this.Pos()
 	return this
 }
@@ -159,5 +156,5 @@ func (this *SocketPacket) GetBody() []byte {
 }
 
 func (this *SocketPacket) Print() {
-	fmt.Println(this.Cmd(), "网络消耗:", gutil.NanoStr(gutil.GetNano()-this.m_time))
+	//fmt.Println(this.Cmd(), "网络消耗:", gutil.NanoStr(gutil.GetNano()-this.m_time))
 }

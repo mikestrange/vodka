@@ -47,7 +47,7 @@ func (this *GateSession) IsLive() bool {
 	return this.Player.Status > LOGON_NULL && this.Player.Status < LOGON_OUT
 }
 
-func (this *GateSession) OnClose(code int) {
+func (this *GateSession) OnClose() {
 	//发生了登录(成功是否不知道)
 	if this.IsLive() {
 		//等待列表删除

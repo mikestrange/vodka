@@ -41,7 +41,7 @@ func Test_send_all() {
 			message += "A"
 		}
 		tx.Send(gnet.NewPackArgs(command.SERVER_WORLD_NOTICE_PLAYERS, uid, cmd, cid, fromid, mtype, message))
-		tx.Close()
+		tx.CloseWrite()
 	}
 }
 

@@ -15,9 +15,11 @@ go get github.com/go-sql-driver/mysql
 
 
 ###测试服务器
+
 1，直接运行sh make.sh启动服务器(gate, chat, logon, world, game)
 
 2，game模块在开发阶段，请自行注销(在目录app/server/launch.go里面)
+
 
 
 ##客户端测试(i表示任意数字 +表示空格)

@@ -18,13 +18,13 @@
 *.o
 *.a
 
-godark
+ants_server
 
 pkg/
 bin/
 
-src/github.com
-src/golang.org
+#src/github.com
+#src/golang.org
 src/src
 # 开发阶段
 src/app/server/game

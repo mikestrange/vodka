@@ -50,7 +50,7 @@ func on_logon_result(packet gnet.ISocketPacket) {
 			session.Send(pack_logon_result(0, body))
 		} else {
 			session.Send(pack_logon_result(code))
-			session.Close()
+			session.CloseWrite()
 		}
 	}
 }
@@ -79,5 +79,5 @@ func kick_player(session *GateSession, code int16) {
 	fmt.Println(fmt.Sprintf("Kick User ok# code=%d uid=%d, session=%v", code, session.Player.UserID, session.Player.SessionID))
 	session.KickOut()
 	session.Send(packet_kick_user(code))
-	session.Close()
+	session.CloseWrite()
 }

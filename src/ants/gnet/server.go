@@ -130,8 +130,9 @@ func (this *TCPServer) handleConn(conn net.Conn) {
 	proxy := this.NewProxyHandle(tcpConn)
 	go func() {
 		proxy.Run()
+		tcpConn.Kill()
 		this.deleteConn(conn)
-		proxy.OnClose(tcpConn.Close())
+		proxy.OnClose()
 		this.wgConns.Done()
 	}()
 }

@@ -196,7 +196,8 @@ func (this *NetCluster) socket_proxy(args ...interface{}) bool {
 			})
 			go func() {
 				tx.Run()
-				tx.OnClose(tx.Close())
+				tx.Kill()
+				tx.OnClose()
 				this.Lock()
 				this.client = nil
 				this.Unlock()

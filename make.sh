@@ -8,7 +8,7 @@
 #go build -o $NAME $dir/src/main.go
 
 echo "=======================BEGIN======================="
-NAME="godark"
+NAME="ants_server"
 #这里关闭当前进程
 #ID=`ps -ef | grep "$NAME" | grep -v "$0" | grep -v "grep" | awk '{print $2}'`
 ID=`ps aux | grep "$NAME" | grep -v "grep" | awk '{print $2}'`
