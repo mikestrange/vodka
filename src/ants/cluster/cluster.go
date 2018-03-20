@@ -2,182 +2,100 @@ package cluster
 
 import (
 	"ants/gnet"
-	"ants/gsys"
-	"ants/gutil"
 	"sync/atomic"
 )
 
 const ALL_TOPIC = -1
 
-//回调方式
-type ClusterBlock func(INodeRouter, interface{})
-
-//推送方法()
+//分布式基础
 type INodeRouter interface {
-	OnAdd()
-	OnRemove()
-	Data() IDataRoute
-	Push(...interface{}) bool
-	Pull() (interface{}, bool)
-	Parent() INetCluster
-	DoSelf(interface{})
-	//私有
-	setParent(INetCluster)
-}
-
-//分布式基础 (IEventCluster)
-type INetCluster interface {
-	//自身就是一个节点
-	INodeRouter
+	INode
 	//其他节点
 	ResetSession()
 	UsedSessionID() uint64
-	//当前
-	AddRouter(INodeRouter)
-	RemoveRouter(INodeRouter)
-	IndexOf(INodeRouter) int
 	//推送子节点
-	Send(int, ...interface{})
-	SendAll(...interface{})
-	//私有
-	doEvent(INodeRouter, interface{})
+	Send(int, interface{})
+	SendAll(interface{})
+	//自身推送
+	Push(interface{}) bool
+	Pull() (interface{}, bool)
+	//路由数据
+	Data() IDataRoute
 }
 
 //远程调度器
-type NetCluster struct {
-	gsys.Locked
+type NodeRouter struct {
+	Node
 	session uint64
 	data    IDataRoute
-	routes  gutil.IArrayObject
-	handle  ClusterBlock
-	parent  INetCluster
 	client  gnet.INetContext
 }
 
-func NewCluster(data IDataRoute) INetCluster {
-	return NewMainCluster(data, nil)
+func NewRouter(data IDataRoute) INodeRouter {
+	return NewMainRouter(data, nil)
 }
 
-func NewClusterPort(port int) INetCluster {
-	return NewCluster(NewDataRoute(port))
+func NewRouterPort(port int) INodeRouter {
+	return NewRouter(NewData(port))
 }
 
-func NewMainCluster(data IDataRoute, handle ClusterBlock) INetCluster {
-	this := new(NetCluster)
+func NewMainRouter(data IDataRoute, handle NodeBlock) INodeRouter {
+	this := new(NodeRouter)
 	this.InitRemoteScheduler(data, handle)
 	return this
 }
 
-func (this *NetCluster) InitRemoteScheduler(data IDataRoute, handle ClusterBlock) {
-	this.routes = gutil.NewArray()
-	this.handle = handle
+func (this *NodeRouter) InitRemoteScheduler(data IDataRoute, handle NodeBlock) {
+	this.init()
+	this.SetTaker(this)
+	this.SetHandle(handle)
 	this.data = data
 }
 
-//设置节点以及回调函数
-func (this *NetCluster) AddRouter(val INodeRouter) {
-	this.Lock()
-	if this.routes.IndexOf(val) == gutil.NOT_VALUE {
-		val.setParent(this)
-		this.routes.Push(val)
-		this.Unlock()
-		val.OnAdd()
-	} else {
-		this.Unlock()
-	}
-}
-
-func (this *NetCluster) RemoveRouter(val INodeRouter) {
-	this.Lock()
-	if this.routes.DelVal(val) {
-		val.setParent(nil)
-		this.Unlock()
-		val.OnRemove()
-	} else {
-		this.Unlock()
-	}
-}
-
-func (this *NetCluster) IndexOf(val INodeRouter) int {
-	return this.routes.IndexOf(val)
-}
-
-func (this *NetCluster) Send(topic int, args ...interface{}) {
+func (this *NodeRouter) Send(topic int, data interface{}) {
 	list := this.getChildrens(topic)
 	for i := range list {
-		list[i].Push(args...)
+		list[i].Push(data)
 	}
 }
 
-func (this *NetCluster) SendAll(args ...interface{}) {
+func (this *NodeRouter) SendAll(data interface{}) {
 	list := this.getChildrens(ALL_TOPIC)
 	for i := range list {
-		list[i].Push(args...)
+		list[i].Push(data)
 	}
 }
 
-func (this *NetCluster) setParent(parent INetCluster) {
-	this.parent = parent
-}
-
-//处理(交给顶级处理)
-func (this *NetCluster) doEvent(node INodeRouter, data interface{}) {
-	if this.parent != nil {
-		this.parent.doEvent(this, data)
-	} else if this.handle != nil {
-		this.handle(node, data)
-	} else {
-		println("no handle rotuer:", this.data.Name())
-	}
-}
-
-func (this *NetCluster) UsedSessionID() uint64 {
+func (this *NodeRouter) UsedSessionID() uint64 {
 	return atomic.AddUint64(&this.session, 1)
 }
 
-func (this *NetCluster) ResetSession() {
+func (this *NodeRouter) ResetSession() {
 	atomic.SwapUint64(&this.session, 0)
 }
 
 //interface INodeRouter(处理方式就在这里)
-func (this *NetCluster) Push(args ...interface{}) bool {
+func (this *NodeRouter) Push(data interface{}) bool {
 	this.Lock()
-	ok := this.socket_proxy(args...)
+	ok := this.socket_proxy(data)
 	this.Unlock()
 	return ok
 }
 
-func (this *NetCluster) OnAdd() {
-
-}
-
-func (this *NetCluster) OnRemove() {
-
-}
-
-func (this *NetCluster) DoSelf(data interface{}) {
-	this.doEvent(this, data)
-}
-
-func (this *NetCluster) Parent() INetCluster {
-	return this.parent
-}
-
-func (this *NetCluster) Pull() (interface{}, bool) {
+func (this *NodeRouter) Pull() (interface{}, bool) {
 	return nil, false
 }
 
-func (this *NetCluster) Data() IDataRoute {
+func (this *NodeRouter) Data() IDataRoute {
 	return this.data
 }
 
-//privates
-func (this *NetCluster) getChildrens(topic int) []INodeRouter {
+//privates(自行判断)
+func (this *NodeRouter) getChildrens(topic int) []INodeRouter {
 	var nodes []INodeRouter
 	this.Lock()
-	list := this.routes.Elements()
-	for i := range list {
-		node := list[i].(INodeRouter)
+	for k, _ := range this.Nodes {
+		node := k.(INodeRouter)
 		if topic == ALL_TOPIC || node.Data().HasTopic(topic) {
 			nodes = append(nodes, node)
 		}
@@ -187,17 +105,15 @@ func (this *NetCluster) getChildrens(topic int) []INodeRouter {
 }
 
 //成功的方法
-func (this *NetCluster) socket_proxy(args ...interface{}) bool {
+func (this *NodeRouter) socket_proxy(data interface{}) bool {
 	if this.client == nil {
 		if tx, ok := gnet.Socket(this.Data().Addr()); ok {
 			this.client = tx
-			tx.SetHandle(func(event int, bits []byte) {
-				this.DoSelf(gnet.NewPackBytes(bits))
+			tx.SetHandle(func(b []byte) {
+				this.Done(gnet.NewPackBytes(b))
 			})
 			go func() {
-				tx.Run()
-				tx.Kill()
-				tx.OnClose()
+				tx.WaitFor()
 				this.Lock()
 				this.client = nil
 				this.Unlock()
@@ -206,6 +122,6 @@ func (this *NetCluster) socket_proxy(args ...interface{}) bool {
 			return false
 		}
 	}
-	this.client.Send(args...)
+	this.client.Send(data)
 	return true
 }

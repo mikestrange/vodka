@@ -8,7 +8,6 @@ type chanItem struct {
 }
 
 type buffChan struct {
-	Locked
 	closeFlag bool
 	buff      chan *chanItem
 	mutex     sync.Mutex
@@ -62,12 +61,11 @@ func (this *buffChan) Loop(block func(interface{})) {
 //private
 func (this *buffChan) doPush(closed bool, data interface{}) bool {
 	this.mutex.Lock()
+	defer this.mutex.Unlock()
 	if this.closeFlag {
-		this.mutex.Unlock()
 		return false
 	}
 	this.buff <- &chanItem{closed, data}
-	this.mutex.Unlock()
 	return true
 }
 

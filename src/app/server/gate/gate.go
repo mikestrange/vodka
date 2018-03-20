@@ -9,7 +9,6 @@ import (
 )
 
 var logon *LogonMode
-var router cluster.INetCluster
 
 func init() {
 	logon = NewLogonMode()
@@ -36,9 +35,10 @@ func ServerLaunch(port int) {
 	//
 	router = command.SetRouter(port, on_router_block)
 	//
-	gnet.NewTcpServer(port, func(tx gnet.INetContext) gnet.INetProxy {
-		session := NewSession(tx)
-		tx.SetHandle(func(event int, bits []byte) {
+	gnet.NewTcpServer(port, func(conn interface{}) {
+		session := NewSession(conn)
+		//handle func begin
+		session.Tx().SetHandle(func(bits []byte) {
 			pack := gnet.NewPackBytes(bits)
 			switch pack.Topic() {
 			case conf.TOPIC_GATE: //自身处理
@@ -68,11 +68,16 @@ func ServerLaunch(port int) {
 				}
 			}
 		})
-		return session
+		//handle func end
+		session.Run()
+		session.OnClose()
 	}).Start()
 }
 
-func on_router_block(node cluster.INodeRouter, data interface{}) {
+var router cluster.INodeRouter
+
+func on_router_block(client interface{}, data interface{}) {
+	node := client.(cluster.INodeRouter)
 	pack := data.(gnet.ISocketPacket)
 	if pack.Cmd() == gnet.EVENT_HEARTBEAT_PINT {
 		node.Push(gnet.NewPackArgs(gnet.EVENT_HEARTBEAT_PINT))

@@ -2,24 +2,34 @@ package gnet
 
 import "fmt"
 
+//解码-编码
+type IProtocoler interface {
+	//解码直接获得消息
+	Unmarshal([]byte) []interface{}
+	//编码
+	Marshal(interface{}) []byte
+	//编码每次尺寸
+	BuffSize() int
+}
+
 //private 网络格式化处理
-func NewSocketProcessor() INetProcessor {
-	this := new(netProcessor)
+func NewProtocoler() IProtocoler {
+	this := new(netProtocoler)
 	this.init()
 	return this
 }
 
 //简单的(解码/编码)操作
-type netProcessor struct {
+type netProtocoler struct {
 	ByteArray     //自身作为读
 	head_size int //包头
 }
 
-func (this *netProcessor) init() {
+func (this *netProtocoler) init() {
 	this.InitByteArray()
 }
 
-func (this *netProcessor) Unmarshal(bits []byte) []interface{} {
+func (this *netProtocoler) Unmarshal(bits []byte) []interface{} {
 	this.Append(bits)
 	var messages []interface{}
 	for {
@@ -45,15 +55,19 @@ func (this *netProcessor) Unmarshal(bits []byte) []interface{} {
 }
 
 //这里选择了复制
-func (this *netProcessor) Marshal(args ...interface{}) []byte {
+func (this *netProtocoler) Marshal(data interface{}) []byte {
 	pack := NewByteArray()
-	for i := range args {
-		if bits := ToBytes(args[i]); bits != nil {
-			if size := len(bits); check_size_ok(size) {
-				pack.WriteInt(int32(size))
-				pack.WriteBytes(bits)
-			}
+	if bits := ToBytes(data); bits != nil {
+		if size := len(bits); check_size_ok(size) {
+			pack.WriteInt(int32(size))
+			pack.WriteBytes(bits)
+		} else {
+			panic(fmt.Sprintf("Pack size err: size=%d", len(bits)))
 		}
 	}
 	return pack.Bytes()
+}
+
+func (this *netProtocoler) BuffSize() int {
+	return NET_BUFF_NEW_SIZE
 }

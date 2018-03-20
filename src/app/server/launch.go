@@ -7,6 +7,7 @@ import "app/server/logon"
 import "app/server/world"
 import "app/server/chat"
 import "app/server/game"
+import "app/server/hall"
 
 func init() {
 
@@ -24,11 +25,14 @@ func Launch(name string) {
 		go world.ServerLaunch(conf.PORT_WORLD)
 	case "chat":
 		go chat.ServerLaunch(conf.PORT_CHAT)
+	case "hall":
+		go hall.ServerLaunch(conf.PORT_HALL)
 	default:
 		Launch("gate")
 		Launch("login")
 		Launch("world")
 		Launch("chat")
 		Launch("game")
+		Launch("hall")
 	}
 }

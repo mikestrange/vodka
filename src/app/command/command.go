@@ -39,6 +39,13 @@ const (
 	SERVER_REMOVE_CHANNEL
 )
 
+//hall
+const (
+	_ int = 600 + iota
+	CLIENT_CHANGE_NAME
+	CLIENT_CHANGE_INFO
+)
+
 //game texas
 const (
 	_ int = 2000 + iota

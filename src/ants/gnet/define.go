@@ -21,6 +21,7 @@ const (
 	//默认: max server conn
 	NET_SERVER_CONN_SIZE = 10000
 	//默认: pack min > i < pack max
+	HEAD_SIZE         = 4
 	NET_BUFF_NEW_SIZE = 1024 * 10 //reads
 	NET_BUFF_MINLEN   = 1
 	NET_BUFF_MAXLEN   = 1024 * 1024 * 50 //(50MB)

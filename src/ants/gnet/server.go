@@ -2,6 +2,7 @@ package gnet
 
 //一个服务器如此简单
 import (
+	"ants/gsys"
 	"fmt"
 	"net"
 	"sync"
@@ -11,21 +12,20 @@ import (
 type ConnSet map[net.Conn]int
 
 type TCPServer struct {
-	Port           int
-	NewProxyHandle ServerBlock
+	gsys.Locked
+	Port       int
+	ConnHandle func(interface{})
 	//可选
 	MaxConnNum int
-	WriteNum   int
 	//private
-	ln         net.Listener
-	conns      ConnSet
-	mutexConns sync.Mutex
-	wgLn       sync.WaitGroup
-	wgConns    sync.WaitGroup
+	ln      net.Listener
+	conns   ConnSet
+	wgLn    sync.WaitGroup
+	wgConns sync.WaitGroup
 }
 
-func NewTcpServer(port int, handle ServerBlock) INetServer {
-	this := &TCPServer{Port: port, NewProxyHandle: handle}
+func NewTcpServer(port int, handle func(interface{})) INetServer {
+	this := &TCPServer{Port: port, ConnHandle: handle}
 	return this
 }
 
@@ -45,18 +45,15 @@ func (this *TCPServer) init() bool {
 	if this.MaxConnNum <= 0 {
 		this.MaxConnNum = NET_SERVER_CONN_SIZE
 	}
-	if this.WriteNum <= 0 {
-		this.WriteNum = NET_CHAN_SIZE
-	}
 	this.ln = ln
 	this.conns = make(ConnSet)
 	return true
 }
 
 //操作conn
-func (this *TCPServer) closeMany(conn net.Conn) bool {
-	this.mutexConns.Lock()
-	defer this.mutexConns.Unlock()
+func (this *TCPServer) checkMany(conn net.Conn) bool {
+	this.Lock()
+	defer this.Unlock()
 	if this.ConnSize() >= this.MaxConnNum {
 		conn.Close()
 		return true
@@ -66,22 +63,28 @@ func (this *TCPServer) closeMany(conn net.Conn) bool {
 }
 
 func (this *TCPServer) deleteConn(conn net.Conn) {
-	this.mutexConns.Lock()
+	this.Lock()
 	delete(this.conns, conn)
-	this.mutexConns.Unlock()
+	this.Unlock()
 }
 
 func (this *TCPServer) cleanConns() {
-	this.mutexConns.Lock()
+	this.Lock()
 	for conn := range this.conns {
 		conn.Close()
 	}
-	this.conns = nil
-	this.mutexConns.Unlock()
+	this.Unlock()
 }
 
 func (this *TCPServer) ConnSize() int {
 	return len(this.conns)
+}
+
+func (this *TCPServer) Close() {
+	this.ln.Close()
+	this.wgLn.Wait()
+	this.cleanConns()
+	this.wgConns.Wait()
 }
 
 //运行
@@ -90,20 +93,28 @@ func (this *TCPServer) run() {
 	defer this.wgLn.Done()
 	for {
 		conn, err := this.ln.Accept()
-		if err != nil {
-			if this.check_accept(err) {
-				break
+		if err == nil {
+			if this.checkMany(conn) {
+				fmt.Println("To many conn ;max is ", this.ConnSize())
+			} else {
+				this.wgConns.Add(1)
+				go func() {
+					this.handleConn(conn)
+					this.deleteConn(conn)
+					this.wgConns.Done()
+				}()
 			}
-			continue
-		}
-		if this.closeMany(conn) {
-			fmt.Println("to many conn ;max is ", this.ConnSize())
 		} else {
-			this.handleConn(conn)
+			break
 		}
 	}
 }
 
+func (this *TCPServer) handleConn(conn net.Conn) {
+	this.ConnHandle(conn)
+}
+
+//没有什么意义的一段
 func (this *TCPServer) check_accept(err error) bool {
 	var tempDelay time.Duration = 0
 	if ne, ok := err.(net.Error); ok && ne.Temporary() {
@@ -121,25 +132,4 @@ func (this *TCPServer) check_accept(err error) bool {
 	}
 	fmt.Println("Accept Err:", err)
 	return true
-}
-
-//关键处理
-func (this *TCPServer) handleConn(conn net.Conn) {
-	this.wgConns.Add(1)
-	tcpConn := Context(conn, this.WriteNum)
-	proxy := this.NewProxyHandle(tcpConn)
-	go func() {
-		proxy.Run()
-		tcpConn.Kill()
-		this.deleteConn(conn)
-		proxy.OnClose()
-		this.wgConns.Done()
-	}()
-}
-
-func (this *TCPServer) Close() {
-	this.ln.Close()
-	this.wgLn.Wait()
-	this.cleanConns()
-	this.wgConns.Wait()
 }

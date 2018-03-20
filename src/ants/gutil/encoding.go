@@ -51,10 +51,9 @@ func JsonEncode(data interface{}) []byte {
 /*
 解码
 */
-func JsonDecode(val []byte) map[string]string {
-	jsonMap := make(map[string]string)
-	if err := json.Unmarshal(val, &jsonMap); err != nil {
+func JsonDecode(val []byte, data interface{}) {
+	//jsonMap := make(map[string]string)
+	if err := json.Unmarshal(val, &data); err != nil {
 		//Json解析出错
 	}
-	return jsonMap
 }

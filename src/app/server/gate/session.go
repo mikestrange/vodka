@@ -8,9 +8,9 @@ type GateSession struct {
 	Player *UserData
 }
 
-func NewSession(tx gnet.INetContext) *GateSession {
+func NewSession(conn interface{}) *GateSession {
 	this := new(GateSession)
-	this.SetContext(tx)
+	this.SetContext(gnet.NewConn(conn))
 	this.Player = new(UserData)
 	return this
 }

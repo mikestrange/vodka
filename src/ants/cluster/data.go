@@ -28,12 +28,12 @@ type DataRoute struct {
 	state   int
 }
 
-func NewDataRouteWithVo(vo *conf.RouteVo) IDataRoute {
+func NewDataWithVo(vo *conf.RouteVo) IDataRoute {
 	return &DataRoute{routeid: vo.Id, addr: vo.Addr, name: vo.Name, topics: vo.Topic, port: vo.Port, mtype: vo.Type}
 }
 
-func NewDataRoute(port int) IDataRoute {
-	return NewDataRouteWithVo(conf.GetRouter(port))
+func NewData(port int) IDataRoute {
+	return NewDataWithVo(conf.GetRouter(port))
 }
 
 func (this *DataRoute) SetArgs(id int, addr string, name string, topics ...int) {

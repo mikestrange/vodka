@@ -58,7 +58,7 @@ func on_logon_result(packet gnet.ISocketPacket) {
 //客户端主动通知
 func on_logout(session *GateSession) {
 	//直接被关闭了
-	session.Kill()
+	session.Close()
 }
 
 //被踢(世界通知的命令)

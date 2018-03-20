@@ -1,12 +1,11 @@
 package gnet
 
-//服务器基本接口
-type ServerBlock func(INetContext) INetProxy
+import "net"
+import "fmt"
 
 type INetServer interface {
 	Start()
 	Close()
-	ConnSize() int
 }
 
 //网络代理接口
@@ -15,51 +14,39 @@ type INetProxy interface {
 	OnClose()
 }
 
-//网络接口
-type INetConn interface {
-	Kill() error //直接关闭
-	CloseRead() error
-	CloseWrite() error
-	WriteBytes([]byte) bool          //无协议写入
-	ReadBytes(int, func([]byte)) int //无协议读取
-}
-
-//网络环境接口 :双通道读写(内部使用)
-type ContextBlock func(int, []byte)
-
-type INetContext interface {
-	INetProxy
-	INetConn //(隐式)
-	//是否客户端链接
-	AsSocket() bool
-	//回调机制
-	SetHandle(ContextBlock)
-	//默认
-	SetProcessor(INetProcessor)
-	//发送多个包(直接发送)
-	Send(...interface{})
-}
-
-//解码-编码
-type INetProcessor interface {
-	//解码直接获得消息
-	Unmarshal([]byte) []interface{}
-	//编码
-	Marshal(...interface{}) []byte
-}
-
-//获得字节接口
-type IBytes interface {
-	Bytes() []byte
+func ListenAndRunServer(port int, block func(IBaseProxy)) INetServer {
+	ser := NewTcpServer(port, func(conn interface{}) {
+		session := NewBaseProxy(Context(conn))
+		block(session)
+		session.Run()
+		session.OnClose()
+	})
+	go ser.Start()
+	return ser
 }
 
 //快速启动服务器
-func ListenAndRunServer(port int, block func(IBaseProxy)) INetServer {
-	ser := NewTcpServer(port, func(tx INetContext) INetProxy {
-		session := NewBaseProxy(tx)
-		block(session)
-		return session
-	})
-	ser.Start()
-	return ser
+func ListenRunServer(port int) (net.Listener, bool) {
+	ln, err := net.Listen("tcp", fmt.Sprintf("127.0.0.1:%d", port))
+	if err != nil {
+		fmt.Println("Run Err:", err)
+		return nil, false
+	}
+	fmt.Println("Run Ser:", port)
+	return ln, true
+}
+
+//直接使用代理就会运行
+func Context(conn interface{}) INetContext {
+	return NewConn(conn)
+}
+
+func Socket(addr string) (INetContext, bool) {
+	conn, err := net.Dial("tcp", addr)
+	if err == nil {
+		fmt.Println("Socket Connect Ok:", conn.LocalAddr().String())
+		return NewConn(conn), true
+	}
+	fmt.Println("Socket Connect Err:", err)
+	return nil, false
 }

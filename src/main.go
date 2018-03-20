@@ -2,41 +2,45 @@ package main
 
 import "app"
 
-//import "fmt"
+import "fmt"
 import "app/server"
 
 import "ants/gutil"
 import "ants/glog"
 import "ants/gnet"
 
-import "ants/lib/gredis"
-import "ants/lib/gsql"
+//import "ants/lib/gredis"
+//import "ants/lib/gsql"
 
 var send_size = 10000 //10MB
+var ser gnet.INetServer
+
+func test_handle_conn(conn gnet.INetContext) {
+	fmt.Println("open list:")
+	conn.SetHandle(func(b []byte) {
+		conn.Send(gnet.NewPackArgs(102))
+		conn.CloseWrite()
+	})
+	conn.WaitFor()
+}
 
 func test() {
-	gutil.Sleep(1000)
-	go gnet.ListenAndRunServer(8080, func(session gnet.IBaseProxy) {
-		session.Context().SetHandle(func(code int, bits []byte) {
-			println("收到:", len(bits))
-			//session.Send(bits)
-		})
-	})
+	//return
+	go func() {
+		ser = gnet.ListenAndRunServer(8081, func(session gnet.IBaseProxy) {
+			session.Tx().SetHandle(func(b []byte) {
 
-	gutil.Sleep(1)
-	if tx, ok := gnet.Socket("127.0.0.1:8080"); ok {
-		message := ""
-		for i := 0; i < send_size; i++ {
-			message += "1234567"
-		}
-		tx.SetHandle(func(code int, bits []byte) {
-			pack := gnet.NewPackBytes(bits)
-			println(pack.Cmd(), "消息：", gutil.MemStr(int64(pack.Length())), "字节>", gutil.NanoStr(gutil.GetNano()-pack.ReadInt64()))
+			})
+			//session.CloseWrite()
 		})
-		t11 := gutil.GetNano()
-		tx.Send(gnet.NewPackArgs(101, gutil.GetNano(), message))
-		println("发送:", gutil.NanoStr(gutil.GetNano()-t11))
-		tx.Run()
+	}()
+	//
+	gutil.Sleep(1000)
+	tx, ok := gnet.Socket("127.0.0.1:8081")
+	if ok {
+		tx.Send(gnet.NewPackArgs(101))
+		tx.CloseWrite()
+		tx.WaitFor()
 	}
 }
 
@@ -52,12 +56,14 @@ func main() {
 		app.Test(glog.Int(2, gutil.SysArgs(), int(gutil.GetTimer()-1521172200000)))
 	} else {
 		//server.Launch("") //启动服务器
-		go gredis.Test()
-		go gsql.Test()
+		//go gredis.Test()
+		//go gsql.Test()
 	}
-	test()
-	client_input()
+	//var arr interface{} = []interface{}{1, 2, 3, "12312312"}
+	//fmt.Println(string(gutil.JsonEncode(arr)))
 	//test()
+	client_input()
+	test()
 	gutil.Add(1)
 	gutil.Wait()
 }
@@ -69,7 +75,7 @@ func client_input() {
 		case "exit":
 			gutil.ExitSystem(1)
 		case "in":
-			go app.Test_login_send(glog.Int(1, str, 1))
+			go app.Test_login_send(glog.Int(1, str, 1), glog.Str(2, str, ""))
 		case "out":
 			go app.Test_remove_player(glog.Int(1, str, 1))
 		case "on":

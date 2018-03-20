@@ -16,6 +16,11 @@ var BigEndian = binary.BigEndian
 //目前默认大端
 var DefEndian = BigEndian //默认
 
+//获得字节接口
+type IBytes interface {
+	Bytes() []byte
+}
+
 //interfaces
 type IByteArray interface {
 	SetEndian(binary.ByteOrder)
@@ -194,7 +199,7 @@ func (this *ByteArray) Read(p []byte) (n int, err error) {
 		panic(errors.New("This P size = 0 or nil"))
 	}
 	if len(p)+this.pos > this.size { //读取超过
-		panic(errors.New("This P Size is over bytes"))
+		panic(fmt.Sprintf("This P Size is over bytes pos=%d size=%d readsize=%d", this.pos, this.size, len(p)))
 	}
 	size := copy(p, this.bytes[this.pos:])
 	this.SetPos(this.pos + size)
@@ -328,15 +333,19 @@ func (this *ByteArray) _write(bit interface{}) {
 }
 
 func (this *ByteArray) _write_val(val interface{}) {
-	switch val.(type) {
+	switch v := val.(type) {
 	case string:
-		this.WriteString(val.(string))
-	case []byte:
-		this.WriteBytes(val.([]byte))
+		this.WriteString(v)
+	case *string:
+		this.WriteString(*v)
 	case int:
-		this.WriteInt(int32(val.(int)))
+		this.WriteInt(int32(v))
+	case *int:
+		this.WriteInt(int32(*v))
 	case IByteArray:
-		this.WriteBytes(val.(IByteArray).Bytes())
+		this.WriteBytes(v.Bytes())
+	case []byte:
+		this.WriteBytes(v)
 	default:
 		this._write(val)
 	}

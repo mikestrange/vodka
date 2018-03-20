@@ -23,8 +23,8 @@ ants_server
 pkg/
 bin/
 
-#src/github.com
-#src/golang.org
+src/app/server/game
+src/github.com
+src/golang.org
 src/src
 # 开发阶段
-src/app/server/game

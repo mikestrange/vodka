@@ -31,20 +31,20 @@ func SetMode(handle func(interface{}, ...interface{}), events map[int]interface{
 	}
 	//心跳激活
 	mode.On(gnet.EVENT_HEARTBEAT_PINT, func(proxy gnet.IBaseProxy) {
-		if proxy.Context().AsSocket() {
-			proxy.Send(gnet.NewPackArgs(gnet.EVENT_HEARTBEAT_PINT))
-		} else {
-			proxy.LivePing()
-		}
+		//		if proxy.Context().AsSocket() {
+		//			proxy.Send(gnet.NewPackArgs(gnet.EVENT_HEARTBEAT_PINT))
+		//		} else {
+		proxy.LivePing()
+		//}
 	})
 	return mode
 }
 
 //路由节点
-func SetRouter(port int, handle func(cluster.INodeRouter, interface{})) cluster.INetCluster {
-	router := cluster.NewMainCluster(cluster.NewDataRoute(port), handle)
+func SetRouter(port int, handle cluster.NodeBlock) cluster.INodeRouter {
+	router := cluster.NewMainRouter(cluster.NewData(port), handle)
 	conf.EachVo(func(vo *conf.RouteVo) {
-		router.AddRouter(cluster.NewCluster(cluster.NewDataRouteWithVo(vo)))
+		router.AddSet(cluster.NewRouter(cluster.NewDataWithVo(vo)))
 	})
 	return router
 }

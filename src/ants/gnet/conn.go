@@ -10,160 +10,171 @@ const (
 	NET_NO = 1
 )
 
+type ConnBlock func([]byte)
+
 //网络接口
-type IConn interface {
-	Close() bool            //直接关闭
-	WriteBytes([]byte) bool //无协议写入
+type INetContext interface {
+	Close() error
+	//关闭读写
+	CloseRead()
+	CloseWrite()
+	//读写
+	Write([]byte) (int, error)
+	Read([]byte) (int, error)
 	//异步 (写入缓冲)
 	Send(interface{}) bool
-	CloseRead() bool
-	CloseWrite() bool
-}
-
-type IConnDelegate interface {
-	OnRead([]byte)
-	OnSend([]byte)
-	OnClose()
-	BuffSize() int
+	Recv(interface{}) bool
+	//轮询写入
+	LoopWrite(int, func(interface{}))
+	LoopRead(int, func(interface{}))
+	//处理
+	SetHandle(ConnBlock)
+	SetCoder(IProtocoler)
+	//运行等待结束
+	WaitFor()
 }
 
 //网络环境实例
 type NetConn struct {
 	gsys.Locked
 	Conn      net.Conn
-	sendFlag  bool
-	readFlag  bool
+	handle    ConnBlock
+	coder     IProtocoler
+	buff      gsys.IAsynDispatcher
 	closeFlag bool
-	buff      chan []byte
-	wgConn    sync.WaitGroup
 }
 
-func (this *NetConn) SetConn(conn net.Conn) {
-	this.Conn = conn
-	this.buff = make(chan []byte, 1024)
+func NewConn(conn interface{}) INetContext {
+	this := new(NetConn)
+	this.SetConn(conn)
+	return this
 }
 
-func (this *NetConn) CloseWrite() bool {
-	this.Lock()
-	defer this.Unlock()
-	if !this.sendFlag {
-		this.sendFlag = true
-		this.buff <- nil
-		return true
-	}
-	return false
+func (this *NetConn) SetConn(conn interface{}) {
+	this.Conn = conn.(net.Conn)
+	this.buff = gsys.NewChannelSize(NET_CHAN_SIZE)
+	this.coder = NewProtocoler()
 }
 
-func (this *NetConn) CloseRead() bool {
-	this.Lock()
-	defer this.Unlock()
-	if !this.readFlag {
-		this.readFlag = true
-		return true
-	}
-	return false
+func (this *NetConn) CloseWrite() {
+	this.buff.AsynClose()
+}
+
+func (this *NetConn) CloseRead() {
+	this.finally()
 }
 
 // interface INetConn
-func (this *NetConn) Close() bool {
-	if this.doClose() {
-		this.OnFinally()
-		return true
-	}
-	return false
-}
-
-func (this *NetConn) doClose() bool {
-	this.Lock()
-	defer this.Unlock()
-	if this.closeFlag {
-		return false
-	}
-	this.closeFlag = true
-	return true
-}
-
-func (this *NetConn) OnFinally() {
+func (this *NetConn) Close() error {
+	this.buff.Close() //直接关闭写入
 	this.CloseRead()
 	this.CloseWrite()
-	if err := this.Conn.Close(); err != nil {
-		fmt.Println("Close Err:", err)
+	//this.finally()
+	return nil
+}
+
+func (this *NetConn) finally() {
+	this.Lock()
+	if !this.closeFlag {
+		this.closeFlag = true
+		if err := this.Conn.Close(); err != nil {
+			fmt.Println("Close Err:", err)
+		}
 	}
+	this.Unlock()
 }
 
 func (this *NetConn) Send(data interface{}) bool {
-	this.Lock()
-	defer this.Unlock()
-	if this.sendFlag {
-		fmt.Println("close Flag = ", this.closeFlag)
-		return false
+	if this.buff.Push(this.getCoder().Marshal(data)) { //写满了就关闭
+		return true
 	}
-	this.buff <- ToBytes(data)
-	return true
+	this.CloseRead()
+	return false
 }
 
-func (this *NetConn) WriteBytes(bits []byte) bool {
-	if ret, err := this.Conn.Write(bits); err != nil {
-		fmt.Println("Write Err:", err, ", ret=", ret)
-		return false
-	}
-	return true
+func (this *NetConn) Recv(data interface{}) bool {
+	println("recv not used")
+	return false
 }
 
-func (this *NetConn) ReadDelegate(delegate IConnDelegate) {
-	this.wgConn.Add(1)
-	go func() {
-		defer this.wgConn.Done()
-		defer this.CloseWrite()
-		bits := make([]byte, delegate.BuffSize())
-		for {
-			if ret, err := this.Conn.Read(bits); err == nil {
-				delegate.OnRead(bits[:ret])
-			} else {
-				break
-			}
+func (this *NetConn) Write(bits []byte) (int, error) {
+	return this.Conn.Write(bits)
+}
+
+func (this *NetConn) Read(b []byte) (int, error) {
+	return this.Conn.Read(b)
+}
+
+//阻塞写
+func (this *NetConn) LoopWrite(size int, block func(interface{})) {
+	this.buff.Loop(block)
+}
+
+//阻塞读
+func (this *NetConn) LoopRead(size int, block func(interface{})) {
+	bits := make([]byte, size)
+	for {
+		if ret, err := this.Read(bits); err == nil {
+			block(bits[:ret])
+		} else {
+			break
 		}
-		this.Close()
+	}
+}
+
+func (this *NetConn) SetHandle(handle ConnBlock) {
+	this.handle = handle
+}
+
+func (this *NetConn) SetCoder(val IProtocoler) {
+	this.coder = val
+}
+
+//这里才是运行的根本
+func (this *NetConn) WaitFor() {
+	pack := this.getCoder()
+	buffSize := pack.BuffSize()
+	wgConn := new(sync.WaitGroup)
+	wgConn.Add(1)
+	go func() {
+		defer wgConn.Done()
+		defer this.CloseWrite()
+		this.LoopRead(buffSize, func(data interface{}) {
+			list := pack.Unmarshal(ToBytes(data))
+			for i := range list {
+				this.doMsgr(ToBytes(list[i]))
+			}
+		})
 	}()
 	//异步写
-	this.wgConn.Add(1)
-	go func(buff chan []byte) {
-		defer this.wgConn.Done()
+	wgConn.Add(1)
+	go func() {
+		defer wgConn.Done()
 		defer this.CloseRead()
-		defer close(buff)
-		for {
-			if v, ok := <-buff; ok {
-				if v == nil {
-					continue
-				}
-				this.WriteBytes(v)
-				this.OnSend(v)
-			} else {
-				break
-			}
-			if this.sendFlag {
-				break
-			}
-		}
-	}(this.buff)
+		this.LoopWrite(buffSize, func(data interface{}) {
+			this.Write(ToBytes(data))
+		})
+	}()
 	//等着结束
-	this.wgConn.Wait()
-	delegate.OnClose()
+	wgConn.Wait()
+	this.Close()
 }
 
-//通用接口
-func (this *NetConn) OnRead(b []byte) {
-
+//释放消息
+func (this *NetConn) doMsgr(b []byte) {
+	if this.handle != nil {
+		this.handle(b)
+	} else {
+		println("no handle")
+	}
 }
 
-func (this *NetConn) OnSend(b []byte) {
-
+func (this *NetConn) getCoder() IProtocoler {
+	return this.coder
 }
 
-func (this *NetConn) OnClose() {
-
-}
-
-func (this *NetConn) BuffSize() int {
-	return 1024
+func (this *NetConn) check_error() {
+	if err := recover(); err != nil {
+		fmt.Println("Conn Err:", err)
+	}
 }
