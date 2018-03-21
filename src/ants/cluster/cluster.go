@@ -28,7 +28,7 @@ type NodeRouter struct {
 	Node
 	session uint64
 	data    IDataRoute
-	client  gnet.INetContext
+	tx      gnet.INetContext
 }
 
 func NewRouter(data IDataRoute) INodeRouter {
@@ -94,7 +94,7 @@ func (this *NodeRouter) Data() IDataRoute {
 func (this *NodeRouter) getChildrens(topic int) []INodeRouter {
 	var nodes []INodeRouter
 	this.Lock()
-	for k, _ := range this.Nodes {
+	for k := range this.Nodes {
 		node := k.(INodeRouter)
 		if topic == ALL_TOPIC || node.Data().HasTopic(topic) {
 			nodes = append(nodes, node)
@@ -106,22 +106,22 @@ func (this *NodeRouter) getChildrens(topic int) []INodeRouter {
 
 //成功的方法
 func (this *NodeRouter) socket_proxy(data interface{}) bool {
-	if this.client == nil {
+	if this.tx == nil {
 		if tx, ok := gnet.Socket(this.Data().Addr()); ok {
-			this.client = tx
+			this.tx = tx
 			tx.SetHandle(func(b []byte) {
 				this.Done(gnet.NewPackBytes(b))
 			})
 			go func() {
 				tx.WaitFor()
 				this.Lock()
-				this.client = nil
+				this.tx = nil
 				this.Unlock()
 			}()
 		} else {
 			return false
 		}
 	}
-	this.client.Send(data)
+	this.tx.Send(data)
 	return true
 }

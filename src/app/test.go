@@ -15,6 +15,7 @@ func Test_remove_player(uid int) {
 	if tx, ok := gnet.Socket(conf.GetRouter(conf.PORT_WORLD).Addr); ok {
 		var code int16 = 1
 		tx.Send(gnet.NewPackArgs(command.SERVER_WORLD_KICK_PLAYER, code, int32(uid)))
+		//
 		tx.SetHandle(func(bits []byte) {
 			pack := gnet.NewPackBytes(bits)
 			if pack.ReadShort() == 0 {
@@ -31,17 +32,16 @@ func Test_remove_player(uid int) {
 func Test_send_all() {
 	if tx, ok := gnet.Socket(conf.GetRouter(conf.PORT_WORLD).Addr); ok {
 		var uid int32 = 100000
-		var cmd int32 = int32(command.CLIENT_NOTICE_CHANNEL)
+		cmd := command.CLIENT_NOTICE_CHANNEL
 		var cid int32 = 10086
 		var fromid int32 = uid
 		var mtype int16 = 0
 		message := gutil.Int64ToString(gutil.GetNano())
 		message += "|"
-		for i := 0; i < 100; i++ {
-			message += "A"
+		for i := 0; i < 10; i++ {
+			message += "abcde"
 		}
 		tx.Send(gnet.NewPackArgs(command.SERVER_WORLD_NOTICE_PLAYERS, uid, cmd, cid, fromid, mtype, message))
-		tx.CloseWrite()
 		tx.WaitFor()
 	}
 }
@@ -49,18 +49,12 @@ func Test_send_all() {
 //获取在线用户
 func Test_get_online() {
 	if tx, ok := gnet.Socket(conf.GetRouter(conf.PORT_WORLD).Addr); ok {
-		proxy := gnet.NewBaseProxy(tx)
-		tx.SetHandle(func(bits []byte) {
-			pack := gnet.NewPackBytes(bits)
+		tx.SetHandle(func(b []byte) {
+			pack := gnet.NewPackBytes(b)
 			fmt.Println("当前在线人数:", pack.ReadInt())
 		})
-		go func() {
-			proxy.Run()
-			proxy.OnClose()
-		}()
 		tx.Send(gnet.NewPackArgs(command.SERVER_WORLD_GET_ONLINE_NUM))
-		//go tx.WaitFor()
-		println("close online find")
+		tx.WaitFor()
 	}
 }
 
@@ -86,37 +80,36 @@ func Test_login_send(idx int, pwd string) bool {
 }
 
 func test_socket(uid int32, pwd string, tx gnet.INetContext) {
-	//
-	proxy := gnet.NewBaseProxy(tx)
 	tx.Send(gnet.NewPackArgs(command.CLIENT_LOGON, uid, pwd))
 	//
 	t := gutil.GetNano()
 	tx.SetHandle(func(bits []byte) {
 		packet := gnet.NewPackBytes(bits)
 		switch packet.Cmd() {
-		//		case gnet.GNET_HEARTBEAT_PINT:
-		//			{
-		//				tx.Send(gnet.PacketWithHeartBeat)
-		//			}
+		case gnet.EVENT_HEARTBEAT_PINT:
+			{
+				tx.Send(gnet.NewPackArgs(gnet.EVENT_HEARTBEAT_PINT))
+			}
 		case command.CLIENT_LOGON:
 			{
-				packet.Print()
+				//packet.Print()
 				code := packet.ReadShort()
 				//body := packet.ReadBytes(0)
 				//info
-				if code == 0 {
-					name := packet.ReadString()
-					exp := packet.ReadInt()
-					money := packet.ReadInt64()
-					vipexp := packet.ReadInt()
-					viptype := packet.ReadInt()
-					pion := packet.ReadInt()
-					fmt.Println("登录成功, 用户数据:", name, exp, money, vipexp, viptype, pion)
-				}
+				//				if code == 0 {
+				//					name := packet.ReadString()
+				//					exp := packet.ReadInt()
+				//					money := packet.ReadInt64()
+				//					vipexp := packet.ReadInt()
+				//					viptype := packet.ReadInt()
+				//					pion := packet.ReadInt()
+				//					fmt.Println("登录成功, 用户数据:", name, exp, money, vipexp, viptype, pion)
+				//				}
 				fmt.Println("客户端登录: err=", code, ",UID=", uid, ",runtime=", gutil.NanoStr(gutil.GetNano()-t))
 				//改名
-				psend := gnet.NewPackTopic(command.CLIENT_CHANGE_NAME, conf.TOPIC_HALL, "我不是谁，谁不是我")
-				tx.Send(psend)
+				//psend := gnet.NewPackTopic(command.CLIENT_CHANGE_NAME, conf.TOPIC_HALL, "我不是谁，谁不是我")
+				//tx.Send(psend)
+				//
 				//psend := gnet.NewPackTopic(command.CLIENT_JOIN_CHANNEL, conf.TOPIC_CHAT, int32(10086), "test1")
 				//tx.Send(psend)
 				//str := gutil.Int64ToString(gutil.GetTimer())
@@ -131,7 +124,6 @@ func test_socket(uid int32, pwd string, tx gnet.INetContext) {
 			}
 		case command.CLIENT_NOTICE_CHANNEL:
 			{
-				packet.ReadInt()
 				cid, fromid, _, message := packet.ReadInt(), packet.ReadInt(), packet.ReadShort(), packet.ReadString()
 				strs := strings.Split(message, "|")
 				chat_time := gutil.ParseInt(strs[0], 0)
@@ -146,8 +138,8 @@ func test_socket(uid int32, pwd string, tx gnet.INetContext) {
 			fmt.Println("客户端未处理:", packet.Cmd())
 		}
 	})
-	proxy.Run()
-	proxy.OnClose()
+	tx.WaitFor()
+	fmt.Println("关闭了:", uid)
 }
 
 func Test(b int) {

@@ -40,6 +40,7 @@ if [[ $1 == "disnets" ]]; then
 ./$NAME ser world > history/world_log.log &
 ./$NAME ser login > history/login_log.log &
 ./$NAME ser chat > history/chat_log.log &
+./$NAME ser hall > history/hall_log.log &
 else
 ./$NAME $@ > debug.log &
 fi

@@ -13,7 +13,7 @@ const (
 type ConnBlock func([]byte)
 
 //网络接口
-type INetContext interface {
+type IConn interface {
 	Close() error
 	//关闭读写
 	CloseRead()
@@ -28,8 +28,8 @@ type INetContext interface {
 	LoopWrite(int, func(interface{}))
 	LoopRead(int, func(interface{}))
 	//处理
-	SetHandle(ConnBlock)
 	SetCoder(IProtocoler)
+	SetHandle(ConnBlock)
 	//运行等待结束
 	WaitFor()
 }
@@ -37,23 +37,17 @@ type INetContext interface {
 //网络环境实例
 type NetConn struct {
 	gsys.Locked
-	Conn      net.Conn
-	handle    ConnBlock
-	coder     IProtocoler
-	buff      gsys.IAsynDispatcher
 	closeFlag bool
-}
-
-func NewConn(conn interface{}) INetContext {
-	this := new(NetConn)
-	this.SetConn(conn)
-	return this
+	Conn      net.Conn
+	coder     IProtocoler
+	handle    ConnBlock
+	buff      gsys.IAsynDispatcher
 }
 
 func (this *NetConn) SetConn(conn interface{}) {
 	this.Conn = conn.(net.Conn)
-	this.buff = gsys.NewChannelSize(NET_CHAN_SIZE)
 	this.coder = NewProtocoler()
+	this.buff = gsys.NewChannelSize(NET_CHAN_SIZE)
 }
 
 func (this *NetConn) CloseWrite() {
@@ -66,10 +60,9 @@ func (this *NetConn) CloseRead() {
 
 // interface INetConn
 func (this *NetConn) Close() error {
-	this.buff.Close() //直接关闭写入
+	this.buff.Close()
 	this.CloseRead()
 	this.CloseWrite()
-	//this.finally()
 	return nil
 }
 
@@ -88,12 +81,13 @@ func (this *NetConn) Send(data interface{}) bool {
 	if this.buff.Push(this.getCoder().Marshal(data)) { //写满了就关闭
 		return true
 	}
+	fmt.Println("被迫关闭Send")
 	this.CloseRead()
 	return false
 }
 
 func (this *NetConn) Recv(data interface{}) bool {
-	println("recv not used")
+	//println("recv not used")
 	return false
 }
 
@@ -122,12 +116,12 @@ func (this *NetConn) LoopRead(size int, block func(interface{})) {
 	}
 }
 
-func (this *NetConn) SetHandle(handle ConnBlock) {
-	this.handle = handle
-}
-
 func (this *NetConn) SetCoder(val IProtocoler) {
 	this.coder = val
+}
+
+func (this *NetConn) SetHandle(handle ConnBlock) {
+	this.handle = handle
 }
 
 //这里才是运行的根本
@@ -160,17 +154,16 @@ func (this *NetConn) WaitFor() {
 	this.Close()
 }
 
-//释放消息
+func (this *NetConn) getCoder() IProtocoler {
+	return this.coder
+}
+
 func (this *NetConn) doMsgr(b []byte) {
 	if this.handle != nil {
 		this.handle(b)
 	} else {
-		println("no handle")
+		fmt.Println("no handle conn")
 	}
-}
-
-func (this *NetConn) getCoder() IProtocoler {
-	return this.coder
 }
 
 func (this *NetConn) check_error() {

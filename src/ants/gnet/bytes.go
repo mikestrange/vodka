@@ -7,7 +7,7 @@ import (
 )
 
 //默认字节
-const BYTE_DEF_SIZE = 1024
+const BYTE_DEF_SIZE = 100
 
 //字节编译格式
 var LittleEndian = binary.LittleEndian
@@ -298,8 +298,8 @@ func (this *ByteArray) ReadBytes(size int) []byte {
 func (this *ByteArray) Write(p []byte) (n int, err error) {
 	if size := len(p); size > 0 {
 		this.grow(size + this.pos)
-		code := copy(this.bytes[this.pos:], p)
-		this.pos = this.pos + code
+		ret := copy(this.bytes[this.pos:], p)
+		this.pos = this.pos + ret
 		if this.pos > this.size {
 			this.size = this.pos
 		}
@@ -310,9 +310,13 @@ func (this *ByteArray) Write(p []byte) (n int, err error) {
 
 //追加 不移动指针
 func (this *ByteArray) Append(p []byte) {
-	this.grow(len(p) + int(this.size))
-	code := copy(this.bytes[this.size:], p)
-	this.size = this.size + code
+	if len(p) == 0 {
+		println("无效字段")
+		return
+	}
+	this.grow(len(p) + this.size)
+	ret := copy(this.bytes[this.size:], p)
+	this.size = this.size + ret
 }
 
 func (this *ByteArray) grow(new_size int) {

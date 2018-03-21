@@ -37,7 +37,7 @@ func (this *msgBuffer) Close() {
 }
 
 func (this *msgBuffer) AsynClose() {
-	println("The buff do not asyn close!")
+	//println("The buff do not asyn close!")
 }
 
 //目前不用

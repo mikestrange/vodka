@@ -9,12 +9,13 @@ import (
 	"time"
 )
 
+type ServerBlock func(interface{}) INetProxy
 type ConnSet map[net.Conn]int
 
 type TCPServer struct {
 	gsys.Locked
 	Port       int
-	ConnHandle func(interface{})
+	ConnHandle ServerBlock
 	//可选
 	MaxConnNum int
 	//private
@@ -24,7 +25,7 @@ type TCPServer struct {
 	wgConns sync.WaitGroup
 }
 
-func NewTcpServer(port int, handle func(interface{})) INetServer {
+func NewTcpServer(port int, handle ServerBlock) INetServer {
 	this := &TCPServer{Port: port, ConnHandle: handle}
 	return this
 }
@@ -53,12 +54,13 @@ func (this *TCPServer) init() bool {
 //操作conn
 func (this *TCPServer) checkMany(conn net.Conn) bool {
 	this.Lock()
-	defer this.Unlock()
 	if this.ConnSize() >= this.MaxConnNum {
+		this.Unlock()
 		conn.Close()
 		return true
 	}
 	this.conns[conn] = this.ConnSize()
+	this.Unlock()
 	return false
 }
 
@@ -66,6 +68,8 @@ func (this *TCPServer) deleteConn(conn net.Conn) {
 	this.Lock()
 	delete(this.conns, conn)
 	this.Unlock()
+	//避免其他地方没关闭
+	//conn.Close()
 }
 
 func (this *TCPServer) cleanConns() {
@@ -98,20 +102,25 @@ func (this *TCPServer) run() {
 				fmt.Println("To many conn ;max is ", this.ConnSize())
 			} else {
 				this.wgConns.Add(1)
-				go func() {
-					this.handleConn(conn)
-					this.deleteConn(conn)
-					this.wgConns.Done()
-				}()
+				this.handleConn(conn)
 			}
 		} else {
-			break
+			if !this.check_accept(err) {
+				break
+			}
 		}
 	}
 }
 
 func (this *TCPServer) handleConn(conn net.Conn) {
-	this.ConnHandle(conn)
+	agent := this.ConnHandle(conn)
+	//
+	go func() {
+		agent.Run()
+		this.deleteConn(conn)
+		agent.OnClose()
+		this.wgConns.Done()
+	}()
 }
 
 //没有什么意义的一段
@@ -128,8 +137,9 @@ func (this *TCPServer) check_accept(err error) bool {
 		}
 		fmt.Println("Accept error: ", err, "; retrying in ", tempDelay)
 		time.Sleep(tempDelay)
+	} else {
+		fmt.Println("Accept Err:", err)
 		return false
 	}
-	fmt.Println("Accept Err:", err)
 	return true
 }

@@ -15,6 +15,7 @@ func init_dber() {
 }
 
 func check_user(uid int32, PassWord string) int {
+	return 0
 	err_code := 0
 	pwd, ok := gredis.Str(redis, gredis.ToUser(int(uid), "pwd"))
 	if ok {
@@ -42,6 +43,7 @@ func check_user(uid int32, PassWord string) int {
 
 //获取用户数据
 func get_user_info(uid int) []byte {
+	return []byte{}
 	data, ok := gredis.Bytes(redis, gredis.ToUser(uid, "player.info"))
 	if ok {
 		//		pack := gnet.NewByteArrayWithBytes(data)

@@ -34,24 +34,31 @@ func (this *netProtocoler) Unmarshal(bits []byte) []interface{} {
 	var messages []interface{}
 	for {
 		if this.head_size == 0 {
-			this.head_size = int(this.ReadInt())
-			if !check_size_ok(this.head_size) {
-				panic(fmt.Sprintf("Unpack size err: head=%d", this.head_size))
+			if this.Available() >= HEAD_SIZE {
+				this.ReadValue(&this.head_size)
+				if !check_size_ok(this.head_size) {
+					panic(fmt.Sprintf("Unpack size err: head=%d", this.head_size))
+				}
+			} else {
+				break
 			}
 		} else {
 			if this.Available() >= this.head_size {
 				messages = append(messages, this.ReadBytes(this.head_size))
 				this.head_size = 0
+				this.flush()
 			} else {
 				break
 			}
 		}
-		if this.Available() == 0 {
-			this.Reset()
-			break
-		}
 	}
 	return messages
+}
+
+func (this *netProtocoler) flush() {
+	if this.Available() == 0 {
+		this.Reset()
+	}
 }
 
 //这里选择了复制
@@ -59,11 +66,12 @@ func (this *netProtocoler) Marshal(data interface{}) []byte {
 	pack := NewByteArray()
 	if bits := ToBytes(data); bits != nil {
 		if size := len(bits); check_size_ok(size) {
-			pack.WriteInt(int32(size))
-			pack.WriteBytes(bits)
+			pack.WriteValue(size, bits)
 		} else {
 			panic(fmt.Sprintf("Pack size err: size=%d", len(bits)))
 		}
+	} else {
+		panic("Pack not bytes")
 	}
 	return pack.Bytes()
 }

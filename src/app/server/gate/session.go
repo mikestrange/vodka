@@ -48,6 +48,7 @@ func (this *GateSession) IsLive() bool {
 }
 
 func (this *GateSession) OnClose() {
+	println("关闭了>>", this.Player.UserID)
 	//发生了登录(成功是否不知道)
 	if this.IsLive() {
 		//等待列表删除

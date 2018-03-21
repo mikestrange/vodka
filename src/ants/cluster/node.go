@@ -44,9 +44,7 @@ func (this *Node) SetHandle(h NodeBlock) {
 
 //parent
 func (this *Node) Parent() INode {
-	this.Lock()
 	v := this.parent
-	this.Unlock()
 	return v
 }
 
@@ -102,24 +100,23 @@ func (this *Node) UnTaker() interface{} {
 
 func (this *Node) SetTaker(v interface{}) bool {
 	this.Lock()
+	defer this.Unlock()
 	if this.client == nil {
 		this.client = v
-		this.Unlock()
 		return true
 	}
-	this.Unlock()
 	return false
 }
 
 //do
 func (this *Node) Done(data interface{}) {
-	this.doEvent(this.Taker(), data)
+	this.doEvent(this.client, data)
 }
 
 func (this *Node) doEvent(client interface{}, data interface{}) {
-	parent := this.Parent()
-	if parent != nil {
-		parent.doEvent(client, data)
+	p := this.parent
+	if p != nil {
+		p.doEvent(client, data)
 	} else if this.handle != nil {
 		this.handle(client, data)
 	} else {

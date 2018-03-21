@@ -39,15 +39,15 @@ func (this *BaseProxy) Tx() INetContext {
 }
 
 func (this *BaseProxy) Send(data interface{}) {
-	this.Tx().Send(data)
+	this.tx.Send(data)
 }
 
 func (this *BaseProxy) CloseWrite() {
-	this.Tx().CloseWrite()
+	this.tx.CloseWrite()
 }
 
 func (this *BaseProxy) Close() {
-	this.Tx().Close()
+	this.tx.Close()
 }
 
 func (this *BaseProxy) LivePing() {
@@ -59,7 +59,7 @@ func (this *BaseProxy) Ping() bool {
 		this.pingFlag = true
 		return true
 	}
-	this.Tx().Close()
+	this.tx.Close()
 	return false
 }
 

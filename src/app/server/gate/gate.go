@@ -3,9 +3,9 @@ package gate
 import (
 	"ants/cluster"
 	"ants/conf"
+	"ants/glog"
 	"ants/gnet"
 	"app/command"
-	"fmt"
 )
 
 var logon *LogonMode
@@ -35,42 +35,34 @@ func ServerLaunch(port int) {
 	//
 	router = command.SetRouter(port, on_router_block)
 	//
-	gnet.NewTcpServer(port, func(conn interface{}) {
+	gnet.NewTcpServer(port, func(conn interface{}) gnet.INetProxy {
 		session := NewSession(conn)
 		//handle func begin
-		session.Tx().SetHandle(func(bits []byte) {
-			pack := gnet.NewPackBytes(bits)
+		session.Tx().SetHandle(func(b []byte) {
+			pack := gnet.NewPackBytes(b)
 			switch pack.Topic() {
-			case conf.TOPIC_GATE: //自身处理
-				{
-					mode.Done(pack.Cmd(), session, pack)
-				}
+			case 0: //自身处理
+				mode.Done(pack.Cmd(), session, pack)
 			case conf.TOPIC_CLIENT: //直接推送给客户端
-				{
-					//获取客户端的头
-					UserID, SessionID := pack.ReadInt(), pack.ReadUInt64()
-					//获取用户
-					if session, ok := logon.GetUserBySession(UserID, SessionID); ok {
-						body := pack.ReadBytes(0)
-						session.Send(gnet.NewPackArgs(pack.Cmd(), body))
-					}
+				//获取客户端的头
+				UserID, SessionID, body := pack.ReadInt(), pack.ReadUInt64(), pack.ReadBytes(0)
+				//获取用户
+				if target, ok := logon.GetUserBySession(UserID, SessionID); ok {
+					target.Send(gnet.NewPackArgs(pack.Cmd(), body))
 				}
 			default: //通知模块
-				{
-					if session.IsLogin() {
-						player := session.Player
-						body := pack.GetBody()
-						psend := gnet.NewPackArgs(pack.Cmd(), player.UserID, player.GateID, player.SessionID, body)
-						router.Send(pack.Topic(), psend)
-					} else {
-						fmt.Println("连接用户尚未登录")
-					}
+				if session.IsLogin() {
+					player := session.Player
+					body := pack.GetBody()
+					psend := gnet.NewPackArgs(pack.Cmd(), player.UserID, player.GateID, player.SessionID, body)
+					router.Send(pack.Topic(), psend)
+				} else {
+					glog.Debug("连接用户尚未登录")
 				}
 			}
 		})
 		//handle func end
-		session.Run()
-		session.OnClose()
+		return session
 	}).Start()
 }
 

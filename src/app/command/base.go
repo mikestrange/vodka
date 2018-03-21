@@ -19,9 +19,11 @@ func SetMode(handle func(interface{}, ...interface{}), events map[int]interface{
 	}
 	mode := gutil.NewModeWithHandle(func(block interface{}, args ...interface{}) {
 		if asyn {
-			group.Push(func() {
+			if !group.Push(func() {
 				handle(block, args...)
-			})
+			}) {
+				println("丢包>>>")
+			}
 		} else {
 			handle(block, args...)
 		}
@@ -31,11 +33,7 @@ func SetMode(handle func(interface{}, ...interface{}), events map[int]interface{
 	}
 	//心跳激活
 	mode.On(gnet.EVENT_HEARTBEAT_PINT, func(proxy gnet.IBaseProxy) {
-		//		if proxy.Context().AsSocket() {
-		//			proxy.Send(gnet.NewPackArgs(gnet.EVENT_HEARTBEAT_PINT))
-		//		} else {
 		proxy.LivePing()
-		//}
 	})
 	return mode
 }

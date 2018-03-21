@@ -29,10 +29,5 @@ func on_logon(packet gnet.ISocketPacket) {
 
 //通知登录结果
 func pack_logon_result(code int16, uid int32, gateid int32, session uint64, body []byte) gnet.IBytes {
-	psend := gnet.NewPacket()
-	psend.WriteBegin(command.SERVER_WORLD_ADD_PLAYER)
-	psend.WriteValue(code, uid, gateid, session, body)
-	//成功写入资料
-	psend.WriteEnd()
-	return psend
+	return gnet.NewPackArgs(command.SERVER_WORLD_ADD_PLAYER, code, uid, gateid, session, body)
 }

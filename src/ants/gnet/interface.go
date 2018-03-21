@@ -3,6 +3,7 @@ package gnet
 import "net"
 import "fmt"
 
+//服务器启动
 type INetServer interface {
 	Start()
 	Close()
@@ -15,11 +16,10 @@ type INetProxy interface {
 }
 
 func ListenAndRunServer(port int, block func(IBaseProxy)) INetServer {
-	ser := NewTcpServer(port, func(conn interface{}) {
+	ser := NewTcpServer(port, func(conn interface{}) INetProxy {
 		session := NewBaseProxy(Context(conn))
 		block(session)
-		session.Run()
-		session.OnClose()
+		return session
 	})
 	go ser.Start()
 	return ser
@@ -36,7 +36,6 @@ func ListenRunServer(port int) (net.Listener, bool) {
 	return ln, true
 }
 
-//直接使用代理就会运行
 func Context(conn interface{}) INetContext {
 	return NewConn(conn)
 }

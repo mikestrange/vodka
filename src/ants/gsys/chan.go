@@ -1,6 +1,7 @@
 package gsys
 
 import "sync"
+import "fmt"
 
 type chanItem struct {
 	closed bool
@@ -41,6 +42,7 @@ func (this *buffChan) AsynClose() {
 
 func (this *buffChan) Close() {
 	this.mutex.Lock()
+	//defer this.do_check_error()
 	if !this.closeFlag {
 		this.closeFlag = true
 		close(this.buff)
@@ -62,7 +64,8 @@ func (this *buffChan) Loop(block func(interface{})) {
 func (this *buffChan) doPush(closed bool, data interface{}) bool {
 	this.mutex.Lock()
 	defer this.mutex.Unlock()
-	if this.closeFlag {
+	//defer this.do_check_error()
+	if this.closeFlag || this.isOverFull() {
 		return false
 	}
 	this.buff <- &chanItem{closed, data}
@@ -71,4 +74,10 @@ func (this *buffChan) doPush(closed bool, data interface{}) bool {
 
 func (this *buffChan) isOverFull() bool {
 	return len(this.buff) == cap(this.buff)
+}
+
+func (this *buffChan) do_check_error() {
+	if err := recover(); err != nil {
+		fmt.Println("chan :", err)
+	}
 }

@@ -49,11 +49,11 @@ func main() {
 	glog.Debug("运行路径=%s", gutil.Pwd())
 	gutil.TraceData()
 	if gutil.MatchSys(1, "cli") {
-		client_input()
+		//client_input()
 	} else if gutil.MatchSys(1, "ser") {
 		server.Launch(glog.Str(2, gutil.SysArgs(), "gate"))
 	} else if gutil.MatchSys(1, "test") {
-		app.Test(glog.Int(2, gutil.SysArgs(), int(gutil.GetTimer()-1521172200000)))
+		go app.Test(glog.Int(2, gutil.SysArgs(), glog.Int(3, gutil.SysArgs(), 1)))
 	} else {
 		//server.Launch("") //启动服务器
 		//go gredis.Test()
@@ -63,7 +63,6 @@ func main() {
 	//fmt.Println(string(gutil.JsonEncode(arr)))
 	//test()
 	client_input()
-	test()
 	gutil.Add(1)
 	gutil.Wait()
 }
@@ -81,7 +80,12 @@ func client_input() {
 		case "on":
 			go app.Test_get_online()
 		case "all":
-			go app.Test_send_all()
+			for i := 0; i < 1; i++ {
+				go func(idx int) {
+					gutil.Sleep(idx * 10)
+					app.Test_send_all()
+				}(i)
+			}
 		case "test":
 			go app.Test(glog.Int(1, str, 1))
 		case "test2":
