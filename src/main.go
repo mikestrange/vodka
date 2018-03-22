@@ -1,46 +1,25 @@
 package main
 
 import "app"
-
-import "fmt"
 import "app/server"
 
 import "ants/gutil"
 import "ants/glog"
-import "ants/gnet"
+
+//import "ants/gnet"
+
+import "ants/actor"
 
 //import "ants/lib/gredis"
 //import "ants/lib/gsql"
 
-var send_size = 10000 //10MB
-var ser gnet.INetServer
-
-func test_handle_conn(conn gnet.INetContext) {
-	fmt.Println("open list:")
-	conn.SetHandle(func(b []byte) {
-		conn.Send(gnet.NewPackArgs(102))
-		conn.CloseWrite()
-	})
-	conn.WaitFor()
-}
-
 func test() {
-	//return
-	go func() {
-		ser = gnet.ListenAndRunServer(8081, func(session gnet.IBaseProxy) {
-			session.Tx().SetHandle(func(b []byte) {
+	sys := actor.NewSystem()
 
-			})
-			//session.CloseWrite()
-		})
-	}()
-	//
-	gutil.Sleep(1000)
-	tx, ok := gnet.Socket("127.0.0.1:8081")
-	if ok {
-		tx.Send(gnet.NewPackArgs(101))
-		tx.CloseWrite()
-		tx.WaitFor()
+	sys.Added(actor.NewActor())
+	for {
+		sys.Send(1, nil)
+		gutil.Sleep(100)
 	}
 }
 
@@ -61,7 +40,7 @@ func main() {
 	}
 	//var arr interface{} = []interface{}{1, 2, 3, "12312312"}
 	//fmt.Println(string(gutil.JsonEncode(arr)))
-	//test()
+	test()
 	client_input()
 	gutil.Add(1)
 	gutil.Wait()

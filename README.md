@@ -36,3 +36,7 @@ on(查看在线人数)
 out+i(踢出一个链接) 
 
 all(给所有用户发消息)
+
+
+#解决uid随机方案
+http://blog.csdn.net/longjef/article/details/53117354
