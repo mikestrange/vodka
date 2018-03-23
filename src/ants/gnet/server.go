@@ -16,12 +16,12 @@ type TCPServer struct {
 	gsys.Locked
 	Port       int
 	ConnHandle ServerBlock
+	OnClose    func()
 	//可选
 	MaxConnNum int
 	//private
 	ln      net.Listener
 	conns   ConnSet
-	wgLn    sync.WaitGroup
 	wgConns sync.WaitGroup
 }
 
@@ -30,10 +30,12 @@ func NewTcpServer(port int, handle ServerBlock) INetServer {
 	return this
 }
 
-func (this *TCPServer) Start() {
+func (this *TCPServer) Start() bool {
 	if this.init() {
 		this.run()
+		return true
 	}
+	return false
 }
 
 func (this *TCPServer) init() bool {
@@ -86,15 +88,10 @@ func (this *TCPServer) ConnSize() int {
 
 func (this *TCPServer) Close() {
 	this.ln.Close()
-	this.wgLn.Wait()
-	this.cleanConns()
-	this.wgConns.Wait()
 }
 
 //运行
 func (this *TCPServer) run() {
-	this.wgLn.Add(1)
-	defer this.wgLn.Done()
 	for {
 		conn, err := this.ln.Accept()
 		if err == nil {
@@ -110,15 +107,25 @@ func (this *TCPServer) run() {
 			}
 		}
 	}
+	this.over()
+}
+
+func (this *TCPServer) over() {
+	//close
+	this.cleanConns()
+	this.wgConns.Wait()
+	//预约关闭
+	if this.OnClose != nil {
+		this.OnClose()
+	}
 }
 
 func (this *TCPServer) handleConn(conn net.Conn) {
-	agent := this.ConnHandle(conn)
-	//
+	proxy := this.ConnHandle(conn)
 	go func() {
-		agent.Run()
+		proxy.Run()
 		this.deleteConn(conn)
-		agent.OnClose()
+		proxy.OnClose()
 		this.wgConns.Done()
 	}()
 }

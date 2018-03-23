@@ -5,12 +5,16 @@ import "sync"
 type ActorSet map[int]IActor
 type ActorList []IActor
 
+//主要的分布式系统(为分布式提供基础)
+var Main IActorSystem = NewSystem()
+
 type IActorSystem interface {
 	Shutdown()
 	Added(IActor) (IActor, bool)
 	Remove(int) (IActor, bool)
-	Send(int, interface{}) bool
-	Broadcast(interface{})
+	Actor(int) (IActor, bool)
+	Send(int, ...interface{}) bool
+	Broadcast(...interface{})
 }
 
 type ActorSystem struct {
@@ -32,9 +36,9 @@ func (this *ActorSystem) init() {
 func (this *ActorSystem) put(ator IActor) (IActor, bool) {
 	this.mutex.Lock()
 	defer this.mutex.Unlock()
-	val, ok := this.actors[ator.Idx()]
+	_, ok := this.actors[ator.Idx()]
 	if ok {
-		return val, false
+		return ator, false
 	}
 	this.actors[ator.Idx()] = ator
 	return ator, true
@@ -84,6 +88,20 @@ func (this *ActorSystem) removeAll() {
 	}
 }
 
+//完全匹配移除
+func (this *ActorSystem) removeAtor(ator IActor) bool {
+	this.mutex.Lock()
+	val, ok := this.actors[ator.Idx()]
+	if ok && val == ator {
+		delete(this.actors, ator.Idx())
+		this.mutex.Unlock()
+		ator.Close()
+		return true
+	}
+	this.mutex.Unlock()
+	return false
+}
+
 //interfaces
 func (this *ActorSystem) Added(ator IActor) (IActor, bool) {
 	val, ok := this.put(ator)
@@ -91,6 +109,7 @@ func (this *ActorSystem) Added(ator IActor) (IActor, bool) {
 		this.handleActor(ator)
 		return ator, true
 	}
+	println("add err")
 	return val, false
 }
 
@@ -103,26 +122,28 @@ func (this *ActorSystem) Remove(aid int) (IActor, bool) {
 	return nil, false
 }
 
-func (this *ActorSystem) Send(aid int, data interface{}) bool {
+func (this *ActorSystem) Actor(aid int) (IActor, bool) {
+	return this.getActor(aid)
+}
+
+func (this *ActorSystem) Send(aid int, args ...interface{}) bool {
 	if val, ok := this.getActor(aid); ok {
-		return this.callActor(val, data)
+		return this.callActor(val, args)
 	}
 	return false
 }
 
-func (this *ActorSystem) Broadcast(data interface{}) {
+func (this *ActorSystem) Broadcast(args ...interface{}) {
 	arr := this.getActors()
 	//调度所有
 	for i := range arr {
-		this.callActor(arr[i], data)
+		this.callActor(arr[i], args)
 	}
 }
 
-func (this *ActorSystem) callActor(ator IActor, data interface{}) bool {
-	if ator.WillReceive(data) {
-		return ator.Commit(data)
-	}
-	return false
+func (this *ActorSystem) callActor(ator IActor, datas []interface{}) bool {
+	//这里可以交给路由处理下(然后路由转发)
+	return ator.Commit(datas...)
 }
 
 func (this *ActorSystem) Shutdown() {
@@ -134,9 +155,12 @@ func (this *ActorSystem) Shutdown() {
 func (this *ActorSystem) handleActor(ator IActor) {
 	this.wgAtors.Add(1)
 	go func() {
+		//自身运载器运载自身
 		ator.Runner().LoopActor(ator)
-		this.Remove(ator.Idx())
-		ator.OnClosed() //被关闭
+		//避免非正常删除(这里有点危险)
+		this.removeAtor(ator)
+		//最后被关闭
+		ator.OnClosed()
 		this.wgAtors.Done()
 	}()
 }

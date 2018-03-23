@@ -5,7 +5,7 @@ import "fmt"
 
 //服务器启动
 type INetServer interface {
-	Start()
+	Start() bool
 	Close()
 }
 
@@ -17,7 +17,7 @@ type INetProxy interface {
 
 func ListenAndRunServer(port int, block func(IBaseProxy)) INetServer {
 	ser := NewTcpServer(port, func(conn interface{}) INetProxy {
-		session := NewBaseProxy(Context(conn))
+		session := NewProxy(conn)
 		block(session)
 		return session
 	})
@@ -36,15 +36,12 @@ func ListenRunServer(port int) (net.Listener, bool) {
 	return ln, true
 }
 
-func Context(conn interface{}) INetContext {
-	return NewConn(conn)
-}
-
-func Socket(addr string) (INetContext, bool) {
+//tcp链接
+func Socket(addr string) (IBaseProxy, bool) {
 	conn, err := net.Dial("tcp", addr)
 	if err == nil {
 		fmt.Println("Socket Connect Ok:", conn.LocalAddr().String())
-		return NewConn(conn), true
+		return NewProxy(conn), true
 	}
 	fmt.Println("Socket Connect Err:", err)
 	return nil, false

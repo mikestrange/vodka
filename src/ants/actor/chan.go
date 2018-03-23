@@ -5,7 +5,7 @@ import "fmt"
 
 type buffItem struct {
 	closed bool
-	data   interface{}
+	args   []interface{}
 }
 
 type buffChannel struct {
@@ -13,12 +13,6 @@ type buffChannel struct {
 	buff      chan *buffItem
 	mutex     sync.Mutex
 }
-
-//func newBuffer(sz int) *buffChannel {
-//	this := new(buffChannel)
-//	this.init(sz)
-//	return this
-//}
 
 func (this *buffChannel) init(sz int) {
 	this.buff = make(chan *buffItem, sz)
@@ -32,14 +26,14 @@ func (this *buffChannel) Unlock() {
 	this.mutex.Unlock()
 }
 
-func (this *buffChannel) Push(data interface{}) bool {
-	return this.doPush(false, data)
+func (this *buffChannel) Push(args ...interface{}) bool {
+	return this.doPush(false, args...)
 }
 
-func (this *buffChannel) Pull() (interface{}, bool) {
+func (this *buffChannel) Pull() ([]interface{}, bool) {
 	v, ok := <-this.buff
 	if ok && !v.closed {
-		return v.data, true
+		return v.args, true
 	}
 	return nil, false
 }
@@ -53,10 +47,10 @@ func (this *buffChannel) Close() {
 	this.Unlock()
 }
 
-func (this *buffChannel) Loop(handle func(interface{})) {
+func (this *buffChannel) Loop(handle func(...interface{})) {
 	for {
 		if v, ok := this.Pull(); ok {
-			handle(v)
+			handle(v...)
 		} else {
 			break
 		}
@@ -64,14 +58,14 @@ func (this *buffChannel) Loop(handle func(interface{})) {
 }
 
 //private
-func (this *buffChannel) doPush(closed bool, data interface{}) bool {
+func (this *buffChannel) doPush(closed bool, args ...interface{}) bool {
 	this.Lock()
 	defer this.Unlock()
 	if this.closeFlag || this.isOverFull() {
 		fmt.Println("is close or is full")
 		return false
 	}
-	this.buff <- &buffItem{closed, data}
+	this.buff <- &buffItem{closed, args}
 	return true
 }
 

@@ -28,7 +28,7 @@ type NodeRouter struct {
 	Node
 	session uint64
 	data    IDataRoute
-	tx      gnet.INetContext
+	tx      gnet.IBaseProxy
 }
 
 func NewRouter(data IDataRoute) INodeRouter {

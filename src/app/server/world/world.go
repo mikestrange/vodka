@@ -13,7 +13,7 @@ func ServerLaunch(port int) {
 	router = command.SetRouter(port, on_router_block)
 	//服务器快速启动
 	gnet.ListenAndRunServer(port, func(session gnet.IBaseProxy) {
-		session.Tx().SetHandle(func(bits []byte) {
+		session.SetHandle(func(bits []byte) {
 			pack := gnet.NewPackBytes(bits)
 			mode.Done(pack.Cmd(), pack, session)
 		})

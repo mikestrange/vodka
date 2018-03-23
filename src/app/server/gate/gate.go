@@ -38,7 +38,7 @@ func ServerLaunch(port int) {
 	gnet.NewTcpServer(port, func(conn interface{}) gnet.INetProxy {
 		session := NewSession(conn)
 		//handle func begin
-		session.Tx().SetHandle(func(b []byte) {
+		session.SetHandle(func(b []byte) {
 			pack := gnet.NewPackBytes(b)
 			switch pack.Topic() {
 			case 0: //自身处理

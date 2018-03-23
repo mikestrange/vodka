@@ -14,12 +14,10 @@ import "ants/actor"
 //import "ants/lib/gsql"
 
 func test() {
-	sys := actor.NewSystem()
-
-	sys.Added(actor.NewActor())
+	actor.Main.Added(actor.NewTestActor())
 	for {
-		sys.Send(1, nil)
-		gutil.Sleep(100)
+		actor.Main.Send(1, 1, 3, 4, 5, 6, 7)
+		gutil.Sleep(1000)
 	}
 }
 

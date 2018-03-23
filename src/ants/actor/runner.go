@@ -3,7 +3,7 @@ package actor
 //运行器(基本不用管了)
 type IRunner interface {
 	Close()
-	Send(interface{}) bool
+	Send(...interface{}) bool
 	LoopActor(IActor)
 }
 
@@ -20,11 +20,9 @@ func newRunner() IRunner {
 
 //interfaces
 func (this *actorRunner) LoopActor(ator IActor) {
-	this.Loop(func(data interface{}) {
-		ator.OnMessage(data)
-	})
+	this.Loop(ator.OnMessage)
 }
 
-func (this *actorRunner) Send(data interface{}) bool {
-	return this.Push(data)
+func (this *actorRunner) Send(args ...interface{}) bool {
+	return this.Push(args...)
 }

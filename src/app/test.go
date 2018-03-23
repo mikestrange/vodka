@@ -79,7 +79,7 @@ func Test_login_send(idx int, pwd string) bool {
 	return false
 }
 
-func test_socket(uid int32, pwd string, tx gnet.INetContext) {
+func test_socket(uid int32, pwd string, tx gnet.IBaseProxy) {
 	tx.Send(gnet.NewPackArgs(command.CLIENT_LOGON, uid, pwd))
 	//
 	t := gutil.GetNano()
