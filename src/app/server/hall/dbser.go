@@ -10,7 +10,7 @@ var mysql gsql.IConn
 
 //只用来获取用户的数据，并发处理
 func init_dber() {
-	redis = gredis.NewConn()
+	//redis = gredis.NewConn()
 	mysql, _ = gsql.NewConnAddr(gsql.ToAddr("root", "120.77.149.74:3306", "123456", "game_master"), 20)
 }
 

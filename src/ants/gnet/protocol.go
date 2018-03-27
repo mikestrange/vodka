@@ -7,7 +7,7 @@ type IProtocoler interface {
 	//解码直接获得消息
 	Unmarshal([]byte) []interface{}
 	//编码
-	Marshal(interface{}) []byte
+	Marshal(...interface{}) []byte
 	//编码每次尺寸
 	BuffSize() int
 }
@@ -62,16 +62,16 @@ func (this *netProtocoler) flush() {
 }
 
 //这里选择了复制
-func (this *netProtocoler) Marshal(data interface{}) []byte {
+func (this *netProtocoler) Marshal(args ...interface{}) []byte {
 	pack := NewByteArray()
-	if bits := ToBytes(data); bits != nil {
-		if size := len(bits); check_size_ok(size) {
-			pack.WriteValue(size, bits)
-		} else {
-			panic(fmt.Sprintf("Pack size err: size=%d", len(bits)))
+	for i := range args {
+		if bits := ToBytes(args[i]); bits != nil {
+			if size := len(bits); check_size_ok(size) {
+				pack.WriteValue(size, bits)
+			} else {
+				panic(fmt.Sprintf("Pack size err: size=%d", len(bits)))
+			}
 		}
-	} else {
-		panic("Pack not bytes")
 	}
 	return pack.Bytes()
 }

@@ -6,7 +6,7 @@ import "app/command"
 import "ants/gnet"
 import "ants/conf"
 import "ants/gutil"
-import "ants/gsys"
+import "ants/gtime"
 import "fmt"
 import "strings"
 
@@ -51,7 +51,7 @@ func Test_get_online() {
 	if tx, ok := gnet.Socket(conf.GetRouter(conf.PORT_WORLD).Addr); ok {
 		tx.SetHandle(func(b []byte) {
 			pack := gnet.NewPackBytes(b)
-			fmt.Println("当前在线人数:", pack.ReadInt())
+			fmt.Println("当前在线人数 socket:", pack.ReadInt())
 		})
 		tx.Send(gnet.NewPackArgs(command.SERVER_WORLD_GET_ONLINE_NUM))
 		tx.WaitFor()
@@ -79,7 +79,7 @@ func Test_login_send(idx int, pwd string) bool {
 	return false
 }
 
-func test_socket(uid int32, pwd string, tx gnet.IBaseProxy) {
+func test_socket(uid int32, pwd string, tx gnet.IConn) {
 	tx.Send(gnet.NewPackArgs(command.CLIENT_LOGON, uid, pwd))
 	//
 	t := gutil.GetNano()
@@ -110,8 +110,8 @@ func test_socket(uid int32, pwd string, tx gnet.IBaseProxy) {
 				//psend := gnet.NewPackTopic(command.CLIENT_CHANGE_NAME, conf.TOPIC_HALL, "我不是谁，谁不是我")
 				//tx.Send(psend)
 				//
-				//psend := gnet.NewPackTopic(command.CLIENT_JOIN_CHANNEL, conf.TOPIC_CHAT, int32(10086), "test1")
-				//tx.Send(psend)
+				//psend1 := gnet.NewPackTopic(command.CLIENT_JOIN_CHANNEL, conf.TOPIC_CHAT, int32(10086), "test1")
+				//tx.Send(psend1)
 				//str := gutil.Int64ToString(gutil.GetTimer())
 				//psend2 := gnet.NewPackTopic(command.CLIENT_NOTICE_CHANNEL, conf.TOPIC_CHAT, int32(10086), int16(1), str)
 				//tx.Send(psend2)
@@ -145,7 +145,7 @@ func test_socket(uid int32, pwd string, tx gnet.IBaseProxy) {
 func Test(b int) {
 	sub_time := 3
 	fmt.Println("200勇士3秒入侵服务器:", 3)
-	gsys.SetTimeout(1000, 3, func() {
+	gtime.SetTimeout(1000, 3, func() {
 		sub_time--
 		fmt.Println("200勇士3秒入侵服务器:", sub_time)
 	})

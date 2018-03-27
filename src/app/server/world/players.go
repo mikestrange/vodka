@@ -2,6 +2,7 @@ package world
 
 import "ants/gnet"
 import "ants/gutil"
+import "ants/actor"
 
 //世界角色
 type GamePlayer struct {
@@ -69,6 +70,6 @@ func GetUserList() []*GamePlayer {
 func NoticeAllUser(block func(*GamePlayer) interface{}) {
 	list := GetUserList()
 	for _, player := range list {
-		router.Send(player.SerID(), block(player))
+		actor.Main.Send(player.SerID(), block(player))
 	}
 }

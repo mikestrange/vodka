@@ -1,8 +1,10 @@
 package gate
 
 import (
+	"ants/actor"
 	"ants/conf"
 	"ants/gnet"
+	"ants/gsys"
 	"ants/gutil"
 	"app/command"
 	"fmt"
@@ -26,13 +28,13 @@ func on_logon(session *GateSession, packet gnet.ISocketPacket) {
 	//
 	player.UserID = packet.ReadInt()
 	player.PassWord = packet.ReadString()
-	player.GateID = int32(router.Data().RouteID())
-	player.SessionID = router.UsedSessionID()
-	player.RegTime = gutil.GetTimer()
+	player.GateID = int32(gate_idx) //小心识别
+	player.SessionID = gsys.MainSession.UsedSessionID()
+	player.RegTime = gutil.GetTimer() //可以设计超时
 	//加入登陆队列
 	logon.CommitLogon(session)
 	fmt.Println(fmt.Sprintf("Logon Begin# uid=%d, session=%v serid=%d", player.UserID, player.SessionID, player.GateID))
-	router.Send(conf.TOPIC_LOGON, packet_logon_notice(player.UserID, player.PassWord, player.GateID, player.SessionID))
+	actor.Main.Send(conf.TOPIC_LOGON, packet_logon_notice(player.UserID, player.PassWord, player.GateID, player.SessionID))
 }
 
 //世界返回登录结果
@@ -49,15 +51,23 @@ func on_logon_result(packet gnet.ISocketPacket) {
 			body := packet.ReadBytes(0) //自己的一些信息
 			session.Send(pack_logon_result(0, body))
 		} else {
-			session.Send(pack_logon_result(code))
-			session.CloseWrite()
+			session.CloseOf(pack_logon_result(code))
 		}
 	}
 }
 
-//客户端主动通知
+//客户端主动通知(关闭后自己也会通知一次)
 func on_logout(session *GateSession) {
-	//直接被关闭了
+	if session.IsLive() {
+		session.LoginOut()
+		//等待列表删除
+		logon.CompleteLogon(session.Player.UserID, session.Player.SessionID)
+		//登录成功后的删除
+		logon.RemoveUserWithSession(session.Player.UserID, session.Player.SessionID)
+		//通知世界或者游戏
+		actor.Main.Send(conf.TOPIC_WORLD,
+			packet_world_delplayer(session.Player.UserID, session.Player.GateID, session.Player.SessionID))
+	}
 	session.Close()
 }
 
@@ -78,6 +88,5 @@ func kick_player(session *GateSession, code int16) {
 	//被踢的时候不会上报
 	fmt.Println(fmt.Sprintf("Kick User ok# code=%d uid=%d, session=%v", code, session.Player.UserID, session.Player.SessionID))
 	session.KickOut()
-	session.Send(packet_kick_user(code))
-	session.CloseWrite()
+	session.CloseOf(packet_kick_user(code))
 }

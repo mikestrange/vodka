@@ -66,25 +66,3 @@ func Assert(ok bool, str string, args ...interface{}) {
 		panic(fmt.Sprintf(str, args...))
 	}
 }
-
-//var oslog *log.Logger
-//func init_log() {
-//	if oslog == nil {
-//		oslog = log_init(lv)
-//		logchannel(oslog)
-//	}
-//}
-
-//target.Print(str)
-
-//func log_init() *log.Logger {
-//	//str := fmt.Sprintf("debug_%s.log", time.Now().Format("2006-01-02"))
-//	file, err := os.OpenFile("debug.log", os.O_RDWR|os.O_CREATE, 0666)
-//	if err != nil {
-//		fmt.Println("Log Error:", err)
-//		os.Exit(401)
-//		return nil
-//	}
-//	logger := log.New(file, "", log.Ldate|log.Ltime)
-//	return logger
-//}

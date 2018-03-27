@@ -1,4 +1,4 @@
-package gsys
+package gtime
 
 import (
 	"fmt"

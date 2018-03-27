@@ -1,6 +1,6 @@
 package gnet
 
-import "ants/gsys"
+import "ants/gtime"
 
 //基础的(继承他就好了)
 type IBaseProxy interface {
@@ -34,14 +34,17 @@ func (this *BaseProxy) Ping() bool {
 		this.pingFlag = true
 		return true
 	}
-	this.Close()
 	return false
 }
 
 //interface INetProxy
 func (this *BaseProxy) Run() {
-	tm := gsys.After(PING_TIME, func() {
-		this.Send(NewPackArgs(EVENT_HEARTBEAT_PINT))
+	tm := gtime.After(PING_TIME, func() {
+		if this.Ping() {
+			this.Send(NewPackArgs(EVENT_HEARTBEAT_PINT))
+		} else {
+			this.Close()
+		}
 	})
 	defer tm.Stop()
 	this.WaitFor()

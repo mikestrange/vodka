@@ -1,92 +1,46 @@
 package actor
 
-import "fmt"
-
+//对象
 type IActor interface {
-	WillReceive(interface{}) bool
-	//扩展就好了
-	OnMessage(...interface{})
-	OnClosed()
-	//下面的不需要改变
-	Close()
-	Idx() int
-	Topics() []int
-	Name() string
-	Runner() IRunner
-	Commit(...interface{}) bool
-	Context() IActorSystem
+	OnReady(IActorRef)
+	OnMessage(...interface{}) //处理对象
+	OnClose()                 //退出调度
 }
 
-//所有的都可以继承它
+//为了封装
 type BaseActor struct {
-	idx    int
-	name   string
-	runner IRunner
-	system IActorSystem
 }
 
-//简单的
-func NewTestActor() IActor {
-	this := new(BaseActor)
-	return this.SetMaster(1, "test actor", nil, nil)
+func (this *BaseActor) OnReady(ref IActorRef) {
+	//准备阶段，需要对它进行操作
+	ref.Open() //打开ref
 }
 
-//protected (必须要设置的项目, 在添加之前)
-func (this *BaseActor) SetMaster(idx int, name string, runner IRunner, system IActorSystem) IActor {
-	this.idx = idx
-	this.name = name
-	if runner == nil {
-		runner = newRunner()
-	}
-	this.runner = runner
-	if system == nil {
-		system = Main
-	}
-	this.system = system
-	return this
-}
-
-//interfaces
-//继承扩展
 func (this *BaseActor) OnMessage(args ...interface{}) {
-	fmt.Println(this.name, " >actor message", args)
+	println("test msg:", len(args))
 }
 
-//释放资源的时候继承它,只会被执行一次(所以释放的时候继承它)
-func (this *BaseActor) OnClosed() {
-
+func (this *BaseActor) OnClose() {
+	println("test close")
 }
 
-//校正合法性
-func (this *BaseActor) WillReceive(data interface{}) bool {
-	return true
+//函数回调
+type FuncActor struct {
+	BaseActor
+	onMsgr func(...interface{})
+	onEnd  func()
 }
 
-//constant functions
-func (this *BaseActor) Commit(args ...interface{}) bool { //constant
-	return this.Runner().Send(args...)
+func NewFunc(msgr func(...interface{}), end func()) IActor {
+	return &FuncActor{onMsgr: msgr, onEnd: end}
 }
 
-func (this *BaseActor) Name() string { //constant
-	return this.name
+func (this *FuncActor) OnMessage(args ...interface{}) {
+	this.onMsgr(args...)
 }
 
-func (this *BaseActor) Topics() []int {
-	return []int{}
-}
-
-func (this *BaseActor) Idx() int { //constant
-	return this.idx
-}
-
-func (this *BaseActor) Context() IActorSystem { //constant
-	return this.system
-}
-
-func (this *BaseActor) Runner() IRunner { //constant
-	return this.runner
-}
-
-func (this *BaseActor) Close() { //constant
-	this.Runner().Close()
+func (this *FuncActor) OnClose() {
+	if this.onEnd != nil {
+		this.onEnd()
+	}
 }

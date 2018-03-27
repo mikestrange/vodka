@@ -1,34 +1,45 @@
 package main
 
+import "fmt"
+
 import "app"
 import "app/server"
 
 import "ants/gutil"
 import "ants/glog"
-
-//import "ants/gnet"
+import "ants/gnet"
 
 import "ants/actor"
 
 //import "ants/lib/gredis"
 //import "ants/lib/gsql"
 
+var ser gnet.INetServer
+
 func test() {
-	actor.Main.Added(actor.NewTestActor())
-	for {
-		actor.Main.Send(1, 1, 3, 4, 5, 6, 7)
-		gutil.Sleep(1000)
+	fmt.Println("test")
+	//
+	actor.Main.SetActor(actor.NewFunc(func(args ...interface{}) {
+		fmt.Println(args...)
+	}, nil))
+	actor.RunWithActor(actor.Main)
+	actor.Main.Router(112, 123)
+	//
+	f := glog.NewLog()
+	f.OpenFile("../debug.log")
+	for i := 0; i < 100; i++ {
+		go f.Router("是谁为哦问我12331231")
 	}
 }
 
 func main() {
 	glog.LogAndRunning(glog.LOG_DEBUG, 100000)
 	glog.Debug("运行路径=%s", gutil.Pwd())
-	gutil.TraceData()
+	//gutil.TraceData()
 	if gutil.MatchSys(1, "cli") {
 		//client_input()
 	} else if gutil.MatchSys(1, "ser") {
-		server.Launch(glog.Str(2, gutil.SysArgs(), "gate"))
+		server.Launch(glog.Str(2, gutil.SysArgs(), "all"))
 	} else if gutil.MatchSys(1, "test") {
 		go app.Test(glog.Int(2, gutil.SysArgs(), glog.Int(3, gutil.SysArgs(), 1)))
 	} else {
@@ -57,11 +68,12 @@ func client_input() {
 		case "on":
 			go app.Test_get_online()
 		case "all":
-			for i := 0; i < 1; i++ {
-				go func(idx int) {
-					gutil.Sleep(idx * 10)
+			//i := 0; i < 1000000; i++
+			for i := 0; i < 10; i++ {
+				gutil.Sleep(50)
+				go func() {
 					app.Test_send_all()
-				}(i)
+				}()
 			}
 		case "test":
 			go app.Test(glog.Int(1, str, 1))

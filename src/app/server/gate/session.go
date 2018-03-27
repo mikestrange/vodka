@@ -1,7 +1,7 @@
 package gate
 
 import "ants/gnet"
-import "ants/conf"
+import "app/command"
 
 type GateSession struct {
 	gnet.BaseProxy
@@ -48,15 +48,5 @@ func (this *GateSession) IsLive() bool {
 }
 
 func (this *GateSession) OnClose() {
-	println("关闭了>>", this.Player.UserID)
-	//发生了登录(成功是否不知道)
-	if this.IsLive() {
-		//等待列表删除
-		logon.CompleteLogon(this.Player.UserID, this.Player.SessionID)
-		//登录成功后的删除
-		logon.RemoveUserWithSession(this.Player.UserID, this.Player.SessionID)
-		//通知世界
-		router.Send(conf.TOPIC_WORLD, packet_world_delplayer(this.Player.UserID,
-			this.Player.GateID, this.Player.SessionID))
-	}
+	refLogic.Router(this, gnet.NewPackArgs(command.CLIENT_LOGOUT))
 }

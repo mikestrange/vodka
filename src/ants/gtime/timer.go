@@ -1,6 +1,8 @@
-package gsys
+package gtime
 
 import (
+	"ants/gsys"
+	"ants/gwork"
 	"fmt"
 	"time"
 )
@@ -23,21 +25,21 @@ type ITimer interface {
 	Onec(int, interface{})
 	//处理
 	SetHandle(TimerBlock)
-	SetChannel(IAsynDispatcher)
+	SetChannel(gwork.IAsynPusher)
 }
 
 /*
 计时器Class
 */
 type ClockTimer struct {
-	Locked
+	gsys.Locked
 	live     bool
 	delay    int
 	retcount int
 	timeid   uint64
 	timer    *time.Ticker
 	handle   TimerBlock
-	channel  IAsynDispatcher
+	channel  gwork.IAsynPusher
 }
 
 func NewTimer() ITimer {
@@ -46,7 +48,7 @@ func NewTimer() ITimer {
 	return this
 }
 
-func NewTimerWithChannel(target IAsynDispatcher) ITimer {
+func NewTimerWithChannel(target gwork.IAsynPusher) ITimer {
 	this := NewTimer()
 	this.SetChannel(target)
 	return this
@@ -60,7 +62,7 @@ func (this *ClockTimer) SetHandle(block TimerBlock) {
 	this.handle = block
 }
 
-func (this *ClockTimer) SetChannel(channel IAsynDispatcher) {
+func (this *ClockTimer) SetChannel(channel gwork.IAsynPusher) {
 	this.channel = channel
 }
 

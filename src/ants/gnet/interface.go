@@ -21,7 +21,7 @@ func ListenAndRunServer(port int, block func(IBaseProxy)) INetServer {
 		block(session)
 		return session
 	})
-	go ser.Start()
+	ser.Start()
 	return ser
 }
 
@@ -37,12 +37,20 @@ func ListenRunServer(port int) (net.Listener, bool) {
 }
 
 //tcp链接
-func Socket(addr string) (IBaseProxy, bool) {
+func Socket(addr string) (IConn, bool) {
 	conn, err := net.Dial("tcp", addr)
 	if err == nil {
-		fmt.Println("Socket Connect Ok:", conn.LocalAddr().String())
-		return NewProxy(conn), true
+		fmt.Println("Socket Connect Ok:", conn.RemoteAddr().String())
+		return NewConn(conn), true
 	}
 	fmt.Println("Socket Connect Err:", err)
 	return nil, false
+}
+
+//运行
+func RunWithContext(proxy INetProxy, conn IConn) {
+	go func() {
+		proxy.Run()
+		proxy.OnClose()
+	}()
 }

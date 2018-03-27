@@ -9,14 +9,21 @@ import "app/server/chat"
 import "app/server/game"
 import "app/server/hall"
 
-func init() {
+//
+import "ants/actor"
+import "ants/cluster"
 
+func init() {
+	//路由分配
+	conf.EachVo(func(vo *conf.RouteVo) {
+		actor.Main.ActorOf(vo.Topic, cluster.NewRouterPort(vo.Port))
+	})
 }
 
 func Launch(name string) {
 	switch name {
 	case "gate":
-		go gate.ServerLaunch(conf.PORT_GATE)
+		go gate.ServerLaunch(conf.PORT_GATE, conf.TOPIC_GATE)
 	case "login":
 		go logon.ServerLaunch(conf.PORT_LOGIN)
 	case "game":

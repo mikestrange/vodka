@@ -5,15 +5,16 @@ import (
 	"sync"
 )
 
+//private
 type buffItem struct {
-	data interface{}
+	args []interface{}
 	next *buffItem
 }
 
 //消息队列
-type msgBuffer struct {
-	size      int
-	closeFlag bool
+type WorkBuff struct {
+	size     int
+	openFlag bool
 	//其他
 	current int
 	bitem   *buffItem
@@ -21,64 +22,64 @@ type msgBuffer struct {
 	cond    *sync.Cond
 }
 
-func newBuffer(size int) IAsynDispatcher {
-	var mutex sync.Mutex
-	this := &msgBuffer{size: size, closeFlag: false, current: 0, cond: sync.NewCond(&mutex)}
+func NewBuffer(size int) *WorkBuff {
+	return new(WorkBuff).init(size)
+}
+
+func (this *WorkBuff) init(sz int) *WorkBuff {
+	this.SetSize(sz)
 	return this
 }
 
-func (this *msgBuffer) Close() {
+func (this *WorkBuff) SetSize(sz int) {
+	this.size = sz
+	if this.cond == nil {
+		this.cond = sync.NewCond(new(sync.Mutex))
+	}
+}
+
+func (this *WorkBuff) Exit() bool {
 	this.cond.L.Lock()
-	if !this.closeFlag {
-		this.closeFlag = true
+	if this.openFlag {
+		this.openFlag = false
 		this.cond.Broadcast()
 	}
 	this.cond.L.Unlock()
-}
-
-func (this *msgBuffer) AsynClose() {
-	//println("The buff do not asyn close!")
-}
-
-//目前不用
-func (this *msgBuffer) Start() bool {
-	this.cond.L.Lock()
-	if this.closeFlag {
-		this.closeFlag = false
-		this.current = 0
-	}
-	this.cond.L.Unlock()
-	return this.closeFlag == false
-}
-
-func (this *msgBuffer) Push(data interface{}) bool {
-	this.cond.L.Lock()
-	defer this.cond.L.Unlock()
-	if this.closeFlag || this.current >= this.size {
-		return false
-	}
-	val := &buffItem{data, nil}
-	if this.current == 0 {
-		this.bitem, this.eitem = val, val
-	} else {
-		this.eitem.next, this.eitem = val, val
-	}
-	this.current++
-	this.cond.Signal()
 	return true
 }
 
-func (this *msgBuffer) Pull() (interface{}, bool) {
+func (this *WorkBuff) Push(args ...interface{}) bool {
+	this.cond.L.Lock()
+	defer this.cond.L.Unlock()
+	//overfull
+	if this.current >= this.size {
+		return false
+	}
+	if this.openFlag {
+		val := &buffItem{args, nil}
+		if this.current == 0 {
+			this.bitem, this.eitem = val, val
+		} else {
+			this.eitem.next, this.eitem = val, val
+		}
+		this.current++
+		this.cond.Signal()
+		return true
+	}
+	return false
+}
+
+func (this *WorkBuff) Pull() ([]interface{}, bool) {
 	for {
 		this.cond.L.Lock()
 		if this.current > 0 {
-			val := this.bitem.data
+			val := this.bitem.args
 			this.bitem = this.bitem.next
 			this.current--
 			this.cond.L.Unlock()
 			return val, true
 		}
-		if this.closeFlag {
+		if !this.openFlag {
 			this.cond.L.Unlock()
 			return nil, false
 		}
@@ -87,10 +88,30 @@ func (this *msgBuffer) Pull() (interface{}, bool) {
 	}
 }
 
-func (this *msgBuffer) Loop(block func(interface{})) {
+func (this *WorkBuff) Join() bool {
+	this.cond.L.Lock()
+	if !this.openFlag {
+		this.openFlag = true
+		this.current = 0
+		this.cond.L.Unlock()
+		return true
+	}
+	this.cond.L.Unlock()
+	return false
+}
+
+func (this *WorkBuff) RunLoop(block func(...interface{})) {
+	this.cond.L.Lock()
+	if this.openFlag {
+		go this.Loop(block)
+	}
+	this.cond.L.Unlock()
+}
+
+func (this *WorkBuff) Loop(block func(...interface{})) {
 	for {
-		if d, ok := this.Pull(); ok {
-			handleAsynData(block, d)
+		if args, ok := this.Pull(); ok {
+			block(args...)
 		} else {
 			break
 		}
