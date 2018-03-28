@@ -24,12 +24,6 @@ func test() {
 	}, nil))
 	actor.RunWithActor(actor.Main)
 	actor.Main.Router(112, 123)
-	//
-	f := glog.NewLog()
-	f.OpenFile("../debug.log")
-	for i := 0; i < 100; i++ {
-		go f.Router("是谁为哦问我12331231")
-	}
 }
 
 func main() {

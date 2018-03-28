@@ -42,7 +42,7 @@ if [[ $1 == "disnets" ]]; then
 ./$NAME ser chat > history/chat_log.log &
 ./$NAME ser hall > history/hall_log.log &
 else
-./$NAME $@ > debug.log &
+./$NAME $@ > history/debug.log &
 fi
 
 #上面已经进入后台
