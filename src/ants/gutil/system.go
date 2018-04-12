@@ -8,7 +8,7 @@ var BeginTime int64
 
 //时间格式
 const go_day_string = "2006-01-02"
-const go_time_string = "2006-01-02 15:04:05"
+const go_time_string = "2006-01-02 15:04:05.0"
 
 //时间参数
 const TIME_DAY = 60 * 60 * 24
@@ -54,9 +54,16 @@ const (
 	Hour              = 60 * Minute
 )
 
+//测试函数时间
+func TryFun(f func()) string {
+	t := GetNano()
+	f()
+	return NanoStr(GetNano() - t)
+}
+
 //传入毫秒
 func MicStr(idx int64) string {
-	return NanoStr(idx / Millisecond)
+	return NanoStr(idx * Millisecond)
 }
 
 //传入纳秒

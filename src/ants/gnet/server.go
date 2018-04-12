@@ -9,18 +9,20 @@ import (
 )
 
 type ServerBlock func(interface{}) INetProxy
-type ConnSet map[net.Conn]int
+type connSet map[net.Conn]int
 
 type TCPServer struct {
 	gsys.Locked
-	gsys.WaitGroup
+
+	//必须
 	Port       int
 	ConnHandle ServerBlock
 	//可选
 	MaxConnNum int
 	//private
-	ln    net.Listener
-	conns ConnSet
+	ln     net.Listener
+	conns  connSet
+	wgConn gsys.WaitGroup
 }
 
 func NewTcpServer(port int, handle ServerBlock) INetServer {
@@ -47,7 +49,7 @@ func (this *TCPServer) init() bool {
 		this.MaxConnNum = NET_SERVER_CONN_SIZE
 	}
 	this.ln = ln
-	this.conns = make(ConnSet)
+	this.conns = make(connSet)
 	return true
 }
 
@@ -87,13 +89,11 @@ func (this *TCPServer) ConnSize() int {
 func (this *TCPServer) Close() {
 	this.ln.Close()
 	this.cleanConns()
-	this.Wait()
+	this.wgConn.Wait()
 }
 
 //运行
 func (this *TCPServer) run() {
-	this.Add()
-	defer this.Done()
 	for {
 		conn, err := this.ln.Accept()
 		if err == nil {
@@ -111,14 +111,12 @@ func (this *TCPServer) run() {
 }
 
 func (this *TCPServer) handleConn(conn net.Conn) {
-	this.Add()
 	proxy := this.ConnHandle(conn)
-	go func() {
+	this.wgConn.Wrap(func() {
 		proxy.Run()
 		this.deleteConn(conn)
 		proxy.OnClose()
-		this.Done()
-	}()
+	})
 }
 
 //没有什么意义的一段

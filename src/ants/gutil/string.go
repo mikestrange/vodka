@@ -30,14 +30,14 @@ func Atoi(str string) int {
 	return 0
 }
 
-func ParseInt(str string, def int64) int64 {
+func Atol(str string) int64 {
 	val, err := strconv.ParseInt(str, 10, 64)
 	if err == nil {
 		return val
 	}
-	return def
+	return 0
 }
 
-func Int64ToString(val int64) string {
+func Ltoa(val int64) string {
 	return strconv.FormatInt(val, 10)
 }

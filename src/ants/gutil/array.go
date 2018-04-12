@@ -1,9 +1,5 @@
 package gutil
 
-import (
-	"sort"
-)
-
 //比较合理的数组
 const NOT_VALUE = -1
 
@@ -40,7 +36,7 @@ type IArrayObject interface {
 	Empty() bool
 	Size() int
 	CapSize() int
-	Sort(func(interface{}, interface{}) bool)
+	//Sort(func(interface{}, interface{}) bool)
 }
 
 type Array struct {
@@ -48,8 +44,10 @@ type Array struct {
 	m_list []interface{}
 }
 
-func NewArray() IArrayObject {
-	return NewArrayWithSize(0)
+func NewArray(args ...interface{}) IArrayObject {
+	this := NewArrayWithSize(0)
+	this.Push(args...)
+	return this
 }
 
 func NewArrayWithSize(size int) IArrayObject {
@@ -220,34 +218,34 @@ func (this *Array) CapSize() int {
 	return cap(this.m_list)
 }
 
-func (this *Array) Sort(block func(interface{}, interface{}) bool) {
-	SortHandle(this.m_list, block)
-}
+//func (this *Array) Sort(block func(interface{}, interface{}) bool) {
+//	SortHandle(this.m_list, block)
+//}
 
-/*
-基于系统一种简单的排序
-*/
-func SortHandle(data []interface{}, block func(interface{}, interface{}) bool) {
-	sort.Sort(&SortInterface{data, block})
-}
+///*
+//基于系统一种简单的排序
+//*/
+//func SortHandle(data []interface{}, block func(interface{}, interface{}) bool) {
+//	sort.Sort(&SortInterface{data, block})
+//}
 
-type SortInterface struct {
-	//sort.Interface
-	SortList   []interface{}
-	SortHandle func(interface{}, interface{}) bool
-}
+//type SortInterface struct {
+//	//sort.Interface
+//	SortList   []interface{}
+//	SortHandle func(interface{}, interface{}) bool
+//}
 
-func (this *SortInterface) Len() int {
-	return len(this.SortList)
-}
+//func (this *SortInterface) Len() int {
+//	return len(this.SortList)
+//}
 
-func (this *SortInterface) Less(i, j int) bool {
-	return this.SortHandle(this.SortList[i], this.SortList[j])
-}
+//func (this *SortInterface) Less(i, j int) bool {
+//	return this.SortHandle(this.SortList[i], this.SortList[j])
+//}
 
-func (this *SortInterface) Swap(i, j int) {
-	this.SortList[i], this.SortList[j] = this.SortList[j], this.SortList[i]
-	//temp := this.SortList[i]
-	//this.SortList[i] = this.SortList[j]
-	//this.SortList[j] = temp
-}
+//func (this *SortInterface) Swap(i, j int) {
+//	this.SortList[i], this.SortList[j] = this.SortList[j], this.SortList[i]
+//	//temp := this.SortList[i]
+//	//this.SortList[i] = this.SortList[j]
+//	//this.SortList[j] = temp
+//}

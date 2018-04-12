@@ -9,7 +9,7 @@ import "ants/gutil"
 
 //服务器的启动(快速启动)
 func ServerLaunch(port int) {
-	var refLogic actor.IActorRef = actor.NewRefRunning(new(LogicActor))
+	refLogic := actor.RunAndThrowBox(new(LogicActor), nil)
 	//服务器快速启动
 	gnet.ListenAndRunServer(port, func(session gnet.IBaseProxy) {
 		session.SetHandle(func(b []byte) {
@@ -20,13 +20,13 @@ func ServerLaunch(port int) {
 
 //逻辑块(单线)
 type LogicActor struct {
-	actor.BaseActor
+	actor.BaseBox
 	mode gutil.IModeAccessor
 }
 
-func (this *LogicActor) OnReady(ref actor.IActorRef) {
+func (this *LogicActor) OnReady() {
 	this.mode = command.SetMode(nil, events)
-	ref.Open()
+	this.SetActor(this)
 }
 
 func (this *LogicActor) OnMessage(args ...interface{}) {
@@ -34,6 +34,6 @@ func (this *LogicActor) OnMessage(args ...interface{}) {
 	this.mode.Done(pack.Cmd(), args...)
 }
 
-func (this *LogicActor) OnClose() {
+func (this *LogicActor) OnDie() {
 
 }

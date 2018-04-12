@@ -21,21 +21,18 @@ func ServerLaunch(port int) {
 
 //处理模块
 type ChatActor struct {
-	actor.ActorSystem
-	actor.BaseActor
+	actor.BoxSystem
 }
 
 func (this *ChatActor) init() {
-	this.Init()
-	this.SetActor(this)
-	actor.RunWithActor(this)
+	actor.RunAndThrowBox(this, nil)
 }
 
-func (this *ChatActor) OnReady(ref actor.IActorRef) {
+func (this *ChatActor) OnReady() {
 	//test
-	this.ActorOf(10086, NewTable(10086, 0))
+	//this.ActorOf(10086, NewTable(10086, 0))
 	//open
-	ref.Open()
+	this.SetActor(this)
 }
 
 func (this *ChatActor) OnMessage(args ...interface{}) {
@@ -51,11 +48,11 @@ func (this *ChatActor) OnMessage(args ...interface{}) {
 }
 
 func (this *ChatActor) on_build_channel(cid int32, ctype int8) {
-	this.ActorOf(int(cid), NewTable(cid, ctype))
+	//this.ActorOf(int(cid), NewTable(cid, ctype))
 }
 
 func (this *ChatActor) on_remove_channel(cid int32) {
-	this.Remove(int(cid))
+	this.CloseRef(int(cid))
 }
 
 func (this *ChatActor) on_table_message(pack gnet.ISocketPacket) {
@@ -64,6 +61,6 @@ func (this *ChatActor) on_table_message(pack gnet.ISocketPacket) {
 	this.Send(int(cid), header, pack)
 }
 
-func (this *ChatActor) OnClose() {
-	this.Shutdown()
+func (this *ChatActor) OnDie() {
+	this.CloseAll()
 }

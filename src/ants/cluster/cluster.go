@@ -8,21 +8,22 @@ import (
 
 //分布式基础
 type INodeRouter interface {
-	actor.IActor
+	actor.IBoxRef
 	//路由数据
 	Data() IDataRoute
 }
 
 //远程调度器
 type NodeRouter struct {
-	actor.BaseActor
+	actor.BaseBox
 	gsys.Locked
 	data IDataRoute
-	conn gnet.IConn
+	conn gnet.Context
 }
 
 func NewRouter(data IDataRoute) INodeRouter {
 	this := new(NodeRouter)
+	this.SetActor(this) //自身行动
 	this.data = data
 	return this
 }
@@ -45,14 +46,13 @@ func (this *NodeRouter) UnContext() {
 	this.Unlock()
 }
 
-func (this *NodeRouter) Context() (gnet.IConn, bool) {
+func (this *NodeRouter) Context() (gnet.Context, bool) {
 	this.Lock()
 	defer this.Unlock()
 	if this.conn == nil {
 		if conn, ok := gnet.Socket(this.Data().Addr()); ok {
 			this.conn = conn
-			conn.SetHandle(this.OnHandle)
-			gnet.RunWithContext(this, conn)
+			gnet.RunWithAgent(this)
 		} else {
 			return nil, false
 		}
@@ -75,9 +75,13 @@ func (this *NodeRouter) OnHandle(b []byte) {
 	}
 }
 
+func (this *NodeRouter) SetHandle(f func([]byte)) {
+
+}
+
 //====
 func (this *NodeRouter) Run() {
-	this.conn.WaitFor()
+	this.conn.Join(this.OnHandle)
 	this.UnContext()
 }
 

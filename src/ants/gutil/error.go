@@ -14,6 +14,16 @@ type MsgError struct {
 	message string
 }
 
+func Throw(args ...interface{}) {
+	if len(args) == 1 {
+		panic(NewError(args[0].(string)))
+	} else if len(args) == 2 {
+		panic(NewMsgError(args[0].(int), args[1].(string)))
+	} else {
+		println("no throw err")
+	}
+}
+
 func NewError(message string) IError {
 	return NewMsgError(0, message)
 }

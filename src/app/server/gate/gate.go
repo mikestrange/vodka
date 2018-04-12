@@ -10,7 +10,7 @@ import (
 
 var gate_idx int
 var logon *LogonMode
-var refLogic actor.IActorRef
+var refLogic actor.IBoxRef
 
 func init() {
 	logon = NewLogonMode()
@@ -33,7 +33,7 @@ func on_gate_handle(block interface{}, args ...interface{}) {
 
 //服务器的启动
 func ServerLaunch(port int, gid int) {
-	refLogic = actor.NewRefRunning(new(LogicActor))
+	refLogic = actor.RunAndThrowBox(new(LogicActor), nil)
 	gate_idx = gid
 	gnet.NewTcpServer(port, func(conn interface{}) gnet.INetProxy {
 		session := NewSession(conn)
@@ -48,17 +48,16 @@ func ServerLaunch(port int, gid int) {
 
 //逻辑块(单线)
 type LogicActor struct {
-	actor.BaseActor
+	actor.BaseBox
 	mode gutil.IModeAccessor
 }
 
-func (this *LogicActor) OnReady(ref actor.IActorRef) {
+func (this *LogicActor) OnReady() {
 	this.mode = command.SetMode(on_gate_handle, events)
-	//--
-	ref.Open()
+	this.SetActor(this)
 }
 
-func (this *LogicActor) OnClose() {
+func (this *LogicActor) OnDie() {
 
 }
 

@@ -18,15 +18,15 @@ const (
 	//	SIGN_SEND_ERROR       = 7
 	//默认: chan size
 	NET_CHAN_SIZE = 1000
-	//默认: max server conn
-	NET_SERVER_CONN_SIZE = 10000
+	//默认: max server conn (2万表示无压力)
+	NET_SERVER_CONN_SIZE = 20000
 	//默认: pack min > i < pack max
 	HEAD_SIZE         = 4
-	NET_BUFF_NEW_SIZE = 1024 * 10 //reads
 	NET_BUFF_MINLEN   = 1
 	NET_BUFF_MAXLEN   = 1024 * 1024 * 50 //(50MB)
-	//心跳
-	PING_TIME = 1000 * 60 * 5 //心跳时间，秒(1000 * 60 * 5)
+	NET_BUFF_NEW_SIZE = 1024 * 10        //new read bytes
+	//默认: Heartbeat time
+	PING_TIME = 1000 * 60 * 5 //5分钟
 )
 
 //转化字节

@@ -6,7 +6,7 @@ import "app/command"
 import "fmt"
 
 type ChatTable struct {
-	actor.BaseActor
+	actor.BaseBox
 	//args
 	channel_id   int32
 	channel_type int8

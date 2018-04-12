@@ -1,14 +1,10 @@
-package gtime
+package kernel
 
 import (
 	"ants/gsys"
-	"ants/gwork"
 	"fmt"
 	"time"
 )
-
-//stop方法必须在回调一个线程(因为如果提前停掉可能会导致致命问题)
-type TimerBlock func(interface{})
 
 /*
 计时器接口
@@ -23,47 +19,53 @@ type ITimer interface {
 	Start(int, int, interface{}) //开始运行
 	Forever(int, interface{})
 	Onec(int, interface{})
-	//处理
-	SetHandle(TimerBlock)
-	SetChannel(gwork.IAsynPusher)
+	//回调
+	SetHandle(interface{})
+	//工作线程
+	SetWorker(IWorkPusher)
 }
 
 /*
 计时器Class
 */
 type ClockTimer struct {
-	gsys.Locked
 	live     bool
 	delay    int
 	retcount int
 	timeid   uint64
 	timer    *time.Ticker
-	handle   TimerBlock
-	channel  gwork.IAsynPusher
+	handle   TimeDelegate
+	work     IWorkPusher
+	locked   gsys.Locked
 }
 
 func NewTimer() ITimer {
 	this := new(ClockTimer)
-	this.InitClockTimer()
 	return this
 }
 
-func NewTimerWithChannel(target gwork.IAsynPusher) ITimer {
+func NewClockWithWork(work IWorkPusher) ITimer {
 	this := NewTimer()
-	this.SetChannel(target)
+	this.SetWorker(work)
 	return this
 }
 
-func (this *ClockTimer) InitClockTimer() {
-
+//private
+func (this *ClockTimer) lock() {
+	this.locked.Lock()
 }
 
-func (this *ClockTimer) SetHandle(block TimerBlock) {
-	this.handle = block
+func (this *ClockTimer) unlock() {
+	this.locked.Unlock()
 }
 
-func (this *ClockTimer) SetChannel(channel gwork.IAsynPusher) {
-	this.channel = channel
+//public
+func (this *ClockTimer) SetHandle(block interface{}) {
+	this.handle = newDelegate(block)
+}
+
+func (this *ClockTimer) SetWorker(work IWorkPusher) {
+	this.work = work
 }
 
 func (this *ClockTimer) Delay() int {
@@ -93,30 +95,30 @@ func (this *ClockTimer) Onec(delay int, data interface{}) {
 
 func (this *ClockTimer) Start(delay int, retcount int, data interface{}) {
 	this.Stop()
-	this.Lock()
+	this.lock()
 	this.live = true
 	this.delay = delay
 	this.retcount = retcount
 	this.timeid, this.timer = clockHandler(delay, retcount, data, this.complete)
-	this.Unlock()
+	this.unlock()
 }
 
 func (this *ClockTimer) Stop() {
-	this.Lock()
+	this.lock()
 	if this.live {
 		this.timeid = 0
 		this.live = false
 		this.timer.Stop()
 	}
-	this.Unlock()
+	this.unlock()
 }
 
 //private functions (这里不判断是否结束)
 func (this *ClockTimer) complete(idx uint64, data interface{}) {
-	if this.channel == nil {
+	if this.work == nil {
 		this.check_complete(idx, data)
 	} else {
-		this.channel.Push(func() {
+		this.work.PushBlock(func() {
 			this.check_complete(idx, data)
 		})
 	}
@@ -127,15 +129,16 @@ func (this *ClockTimer) check_complete(idx uint64, data interface{}) {
 		if this.handle == nil {
 			fmt.Println("No Timer Hanle")
 		} else {
-			this.handle(data)
+			this.handle.OnTimeOutHandle(data)
 		}
 	} else {
-		fmt.Println("Timer channel Over")
+		fmt.Println("Timer work Over")
 	}
 }
 
 func (this *ClockTimer) check_timer(idx uint64) bool {
-	this.Lock()
-	defer this.Unlock()
-	return this.timeid == idx
+	this.lock()
+	ok := this.timeid == idx
+	this.unlock()
+	return ok
 }

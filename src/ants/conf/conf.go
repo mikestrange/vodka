@@ -4,9 +4,9 @@ import (
 	"fmt"
 )
 
-const host string = "120.77.149.74"
+//const host string = "120.77.149.74"
 
-//const host string = "127.0.0.1"
+const host string = "127.0.0.1"
 
 type RouteVo struct {
 	Port  int

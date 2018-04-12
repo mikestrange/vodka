@@ -31,9 +31,9 @@ func Int64(v interface{}) int64 {
 	case int:
 		return int64(r)
 	case []byte:
-		return gutil.ParseInt(string(r), 0)
+		return gutil.Atol(string(r))
 	case string:
-		return gutil.ParseInt(r, 0)
+		return gutil.Atol(r)
 	}
 	return 0
 }
@@ -47,7 +47,7 @@ func Str(v interface{}) string {
 	case int:
 		return gutil.Itoa(r)
 	case int64:
-		return gutil.Int64ToString(r)
+		return gutil.Ltoa(r)
 	}
 	return ""
 }

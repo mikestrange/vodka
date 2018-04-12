@@ -38,6 +38,18 @@ func (this *WorkBuff) SetSize(sz int) {
 	}
 }
 
+func (this *WorkBuff) Open() bool {
+	this.cond.L.Lock()
+	if !this.openFlag {
+		this.openFlag = true
+		this.current = 0
+		this.cond.L.Unlock()
+		return true
+	}
+	this.cond.L.Unlock()
+	return false
+}
+
 func (this *WorkBuff) Exit() bool {
 	this.cond.L.Lock()
 	if this.openFlag {
@@ -88,27 +100,7 @@ func (this *WorkBuff) Pull() ([]interface{}, bool) {
 	}
 }
 
-func (this *WorkBuff) Join() bool {
-	this.cond.L.Lock()
-	if !this.openFlag {
-		this.openFlag = true
-		this.current = 0
-		this.cond.L.Unlock()
-		return true
-	}
-	this.cond.L.Unlock()
-	return false
-}
-
-func (this *WorkBuff) RunLoop(block func(...interface{})) {
-	this.cond.L.Lock()
-	if this.openFlag {
-		go this.Loop(block)
-	}
-	this.cond.L.Unlock()
-}
-
-func (this *WorkBuff) Loop(block func(...interface{})) {
+func (this *WorkBuff) Join(block func(...interface{})) {
 	for {
 		if args, ok := this.Pull(); ok {
 			block(args...)

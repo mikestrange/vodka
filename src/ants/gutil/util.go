@@ -5,6 +5,7 @@ import (
 	"math/rand"
 	"os"
 	"runtime"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -29,8 +30,8 @@ func UpdateSeed() {
 }
 
 //等待系统
-func Add(val int) {
-	sys_group.Add(val)
+func Add() {
+	sys_group.Add(1)
 }
 
 func Done() {
@@ -136,20 +137,41 @@ func Pwd() string {
 	return root_path.(string)
 }
 
-//匹配系统参数
-func MatchSys(idx int, str string) bool {
+func OsArg(idx int) string {
 	if idx >= len(os.Args) {
-		return false
+		return ""
 	}
-	return os.Args[idx] == str
+	return os.Args[idx]
 }
 
-func SysArgs() []string {
+func OsArgs() []string {
 	return os.Args
+}
+
+func Match(idx int, str string) bool {
+	return OsArg(idx) == str
 }
 
 func TraceData() {
 	for i := range os.Args {
-		fmt.Println(i, "系统参数:", os.Args[i])
+		println("os arg ", i, "=", os.Args[i])
 	}
+}
+
+//获取参数
+func Str(idx int, str []string, def string) string {
+	if idx >= len(str) {
+		return def
+	}
+	return str[idx]
+}
+
+func Int(idx int, str []string, def int) int {
+	if idx >= len(str) {
+		return def
+	}
+	if val, err := strconv.Atoi(str[idx]); err == nil {
+		return val
+	}
+	return def
 }

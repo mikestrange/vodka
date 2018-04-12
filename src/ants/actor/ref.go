@@ -1,67 +1,85 @@
 package actor
 
-import "ants/gwork"
+import "ants/kernel"
 
-//代理接口
-type IActorRef interface {
-	SetActor(IActor)
-	ActorObj() IActor
-	Router(...interface{}) bool
-	Close()
-	Run()
-	//继承
-	Open() bool
-	SetMqNum(int)
-	SetThreadNum(int)
+//就这么简单
+type BoxRef struct {
+	//处理器
+	actor IBoxActor
+	//运行机器
+	work kernel.WorkPusher
+	//父级
+	father IBoxSystem
 }
 
-//代理类:能实现对进程
-type ActorRef struct {
-	gwork.WorkSelector
-	obj IActor
-}
-
-//适合多态
-func NewRef() *ActorRef {
-	this := new(ActorRef)
+//直接就运行了
+func NewBox(target IBoxActor, val interface{}) IBoxRef {
+	this := new(BoxRef)
+	this.SetActor(target)
+	RunAndThrowBox(this, val)
 	return this
 }
 
-//直接运行(适合单个Actor)
-func NewRefRunning(obj IActor) IActorRef {
-	this := new(ActorRef)
-	this.SetActor(obj)
-	RunWithActor(this)
-	return this
+//需要make
+func (this *BoxRef) Worker() kernel.IWorkPusher {
+	return &this.work
 }
 
 //interfaces
-func (this *ActorRef) SetActor(obj IActor) {
-	this.obj = obj
+func (this *BoxRef) Make(val interface{}) bool {
+	_, ok := this.work.Make(val)
+	return ok
 }
 
-func (this *ActorRef) ActorObj() IActor {
-	return this.obj
+func (this *BoxRef) OnReady() {
+	//初始化(如果没有继承，那么默认最小)
+	this.Make(nil)
 }
 
-func (this *ActorRef) Run() {
-	this.Join(this.obj.OnMessage)
+func (this *BoxRef) Router(args ...interface{}) bool {
+	return this.work.Push(args...)
 }
 
-func (this *ActorRef) Router(args ...interface{}) bool {
-	return this.Push(args...)
+func (this *BoxRef) SetActor(act IBoxActor) {
+	this.actor = act
 }
 
-func (this *ActorRef) Close() {
-	this.Exit()
+//一般在于重写他 >>启动在其他线程
+func (this *BoxRef) PerformRunning() {
+	//可以设置多个口
+	this.work.ReadMsg(this)
 }
 
-//最后的挣扎
-func RunWithActor(ref IActorRef) {
-	obj := ref.ActorObj()
-	obj.OnReady(ref)
+func (this *BoxRef) Die() {
+	this.work.Die()
+}
+
+func (this *BoxRef) OnReceiver(args ...interface{}) {
+	this.actor.OnMessage(args...)
+}
+
+//被释放(基于父亲)
+func (this *BoxRef) OnRelease() {
+	this.actor.OnDie()
+}
+
+//一般情况下不使用
+func (this *BoxRef) Father() IBoxSystem {
+	return this.father
+}
+
+//不允许外界设置
+func (this *BoxRef) setFather(father IBoxSystem) {
+	this.father = father
+}
+
+//独立运行的盒子
+func RunAndThrowBox(ref IBoxRef, val interface{}) IBoxRef {
+	ref.Make(val)
+	ref.OnReady()
 	go func() {
-		ref.Run()
-		obj.OnClose()
+		ref.PerformRunning()
+		ref.OnRelease()
 	}()
+	return ref
 }

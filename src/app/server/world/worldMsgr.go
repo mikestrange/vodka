@@ -3,6 +3,7 @@ package world
 import "app/command"
 import "ants/gnet"
 import "ants/actor"
+import "ants/conf"
 import "fmt"
 
 var events map[int]interface{} = map[int]interface{}{
@@ -36,6 +37,8 @@ func on_add_player(packet gnet.ISocketPacket) {
 	}
 	fmt.Println(fmt.Sprintf("Enter World Ok# uid=%d, session=%v, gate=%d", player.UserID, player.SessionID, player.GateID))
 	actor.Main.Send(player.SerID(), packet_logon_result(code, player.UserID, player.SessionID, body))
+	//通知游戏
+	actor.Main.Send(conf.TOPIC_GAME, gnet.NewPackArgs(command.SERVER_ADD_PLAYER, player.UserID, player.GateID, player.SessionID))
 }
 
 //移除玩家(网关通知)
@@ -46,6 +49,8 @@ func on_remove_player(packet gnet.ISocketPacket) {
 		if session == player.SessionID && gateid == player.GateID { //同一网关和同一会话id才行
 			fmt.Println("Remove Ok# user=", uid)
 			RemoveUser(uid)
+			//通知游戏
+			actor.Main.Send(conf.TOPIC_GAME, gnet.NewPackArgs(command.SERVER_DEL_PLAYER, player.UserID))
 		} else {
 			fmt.Println(uid, "No match user# get:", gateid, session, " local:", player.SessionID, player.GateID)
 		}
@@ -59,12 +64,11 @@ func on_kick_player(session gnet.IBaseProxy, pack gnet.ISocketPacket) {
 	code, uid := pack.ReadShort(), pack.ReadInt()
 	if player, ok := RemoveUser(uid); ok {
 		actor.Main.Send(player.SerID(), packet_kick_player(code, player))
-		session.Send(gnet.NewPackArgs(pack.Cmd(), int16(0), uid))
+		session.CloseOf(gnet.NewPackArgs(pack.Cmd(), int16(0), uid))
 	} else {
 		fmt.Println("Kick Err# no user:", uid)
-		session.Send(gnet.NewPackArgs(pack.Cmd(), int16(1), uid))
+		session.CloseOf(gnet.NewPackArgs(pack.Cmd(), int16(1), uid))
 	}
-	session.CloseWrite()
 }
 
 //通知世界所有角色(可以直接连世界)
@@ -79,7 +83,7 @@ func on_notice_players(session gnet.IBaseProxy, pack gnet.ISocketPacket) {
 
 func on_online_player(session gnet.IBaseProxy, pack gnet.ISocketPacket) {
 	onlines := int32(len(players))
-	fmt.Println("当前在线人数:", onlines)
+	fmt.Println("online player num = ", onlines)
 	session.CloseOf(gnet.NewPackArgs(command.SERVER_WORLD_GET_ONLINE_NUM, onlines))
 }
 

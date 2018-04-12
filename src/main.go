@@ -6,10 +6,12 @@ import "app"
 import "app/server"
 
 import "ants/gutil"
-import "ants/glog"
 import "ants/gnet"
-
+import "ants/glog"
 import "ants/actor"
+import "ants/kernel"
+
+//import _ "ants/kernel"
 
 //import "ants/lib/gredis"
 //import "ants/lib/gsql"
@@ -17,52 +19,47 @@ import "ants/actor"
 var ser gnet.INetServer
 
 func test() {
-	fmt.Println("test")
-	//
 	actor.Main.SetActor(actor.NewFunc(func(args ...interface{}) {
 		fmt.Println(args...)
 	}, nil))
-	actor.RunWithActor(actor.Main)
-	actor.Main.Router(112, 123)
+	actor.RunAndThrowBox(actor.Main, nil)
+	//
+	kernel.NewGo(func(client interface{}, b2 interface{}) {
+		//fmt.Println("err", client, b2)
+	}, 2).Run(func() {
+		//println("do:")
+	})
 }
 
 func main() {
-	glog.LogAndRunning(glog.LOG_DEBUG, 100000)
 	glog.Debug("运行路径=%s", gutil.Pwd())
 	//gutil.TraceData()
-	if gutil.MatchSys(1, "cli") {
+	if gutil.Match(1, "cli") {
 		//client_input()
-	} else if gutil.MatchSys(1, "ser") {
-		server.Launch(glog.Str(2, gutil.SysArgs(), "all"))
-	} else if gutil.MatchSys(1, "test") {
-		go app.Test(glog.Int(2, gutil.SysArgs(), glog.Int(3, gutil.SysArgs(), 1)))
+	} else if gutil.Match(1, "ser") {
+		server.Launch(gutil.Str(2, gutil.OsArgs(), "all"))
+	} else if gutil.Match(1, "test") {
+		go app.Test(gutil.Int(2, gutil.OsArgs(), 1))
 	} else {
-		//server.Launch("") //启动服务器
 		//go gredis.Test()
 		//go gsql.Test()
 	}
-	//var arr interface{} = []interface{}{1, 2, 3, "12312312"}
-	//fmt.Println(string(gutil.JsonEncode(arr)))
 	test()
 	client_input()
-	gutil.Add(1)
+	gutil.Add()
 	gutil.Wait()
 }
 
 func client_input() {
-	//println(gutil.GetTimer(), int(gutil.GetTimer()-1521172200000))
 	glog.Input(func(str []string) {
 		switch str[0] {
-		case "exit":
-			gutil.ExitSystem(1)
 		case "in":
-			go app.Test_login_send(glog.Int(1, str, 1), glog.Str(2, str, ""))
+			go app.Test_login_send(gutil.Int(1, str, 1), gutil.Str(2, str, ""))
 		case "out":
-			go app.Test_remove_player(glog.Int(1, str, 1))
+			go app.Test_remove_player(gutil.Int(1, str, 1))
 		case "on":
 			go app.Test_get_online()
 		case "all":
-			//i := 0; i < 1000000; i++
 			for i := 0; i < 10; i++ {
 				gutil.Sleep(50)
 				go func() {
@@ -70,11 +67,11 @@ func client_input() {
 				}()
 			}
 		case "test":
-			go app.Test(glog.Int(1, str, 1))
+			go app.Test(gutil.Int(1, str, 1))
 		case "test2":
-			go app.Test_max_login(glog.Int(1, str, 1))
+			go app.Test_max_login(gutil.Int(1, str, 1))
 		case "ser":
-			server.Launch(glog.Str(2, str, "all"))
+			server.Launch(gutil.Str(2, str, "all"))
 		}
 	})
 }

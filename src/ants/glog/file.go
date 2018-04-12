@@ -7,18 +7,21 @@ import (
 	"os"
 )
 
+//文件日志
 type LogStore struct {
-	actor.ActorRef  //继承
-	actor.BaseActor //继承
-	loger           *log.Logger
-	fd              *os.File
+	actor.BaseBox
+	loger *log.Logger
+	fd    *os.File
 }
 
 func NewLog() *LogStore {
 	this := new(LogStore)
-	this.SetActor(this)
-	actor.RunWithActor(this)
+	actor.RunAndThrowBox(this, nil)
 	return this
+}
+
+func (this *LogStore) OnReady() {
+	this.SetActor(this)
 }
 
 func (this *LogStore) OpenFile(path string) bool {
@@ -37,6 +40,6 @@ func (this *LogStore) OnMessage(args ...interface{}) {
 	this.loger.Println(args...)
 }
 
-func (this *LogStore) OnClose() {
+func (this *LogStore) OnDie() {
 	this.fd.Close()
 }

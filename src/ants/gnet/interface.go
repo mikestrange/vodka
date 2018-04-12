@@ -11,6 +11,7 @@ type INetServer interface {
 
 //网络代理接口
 type INetProxy interface {
+	SetHandle(func([]byte))
 	Run()
 	OnClose()
 }
@@ -25,7 +26,7 @@ func ListenAndRunServer(port int, block func(IBaseProxy)) INetServer {
 	return ser
 }
 
-//快速启动服务器
+//快速启动服务
 func ListenRunServer(port int) (net.Listener, bool) {
 	ln, err := net.Listen("tcp", fmt.Sprintf("127.0.0.1:%d", port))
 	if err != nil {
@@ -37,7 +38,7 @@ func ListenRunServer(port int) (net.Listener, bool) {
 }
 
 //tcp链接
-func Socket(addr string) (IConn, bool) {
+func Socket(addr string) (Context, bool) {
 	conn, err := net.Dial("tcp", addr)
 	if err == nil {
 		fmt.Println("Socket Connect Ok:", conn.RemoteAddr().String())
@@ -48,7 +49,7 @@ func Socket(addr string) (IConn, bool) {
 }
 
 //运行
-func RunWithContext(proxy INetProxy, conn IConn) {
+func RunWithAgent(proxy INetProxy) {
 	go func() {
 		proxy.Run()
 		proxy.OnClose()

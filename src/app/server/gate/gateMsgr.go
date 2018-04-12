@@ -48,10 +48,15 @@ func on_logon_result(packet gnet.ISocketPacket) {
 				kick_player(oplayer, 1)
 			}
 			//推送给自己
-			body := packet.ReadBytes(0) //自己的一些信息
-			session.Send(pack_logon_result(0, body))
+			user_info := packet.ReadBytes(0)
+			session.Send(pack_logon_result(0, user_info))
 		} else {
 			session.CloseOf(pack_logon_result(code))
+		}
+	} else {
+		if code == 0 {
+			//失败后返回世界移除
+			actor.Main.Send(conf.TOPIC_WORLD, packet_world_delplayer(UserID, gate_idx, SessionID))
 		}
 	}
 }
@@ -59,14 +64,14 @@ func on_logon_result(packet gnet.ISocketPacket) {
 //客户端主动通知(关闭后自己也会通知一次)
 func on_logout(session *GateSession) {
 	if session.IsLive() {
+		player := session.Player
 		session.LoginOut()
 		//等待列表删除
-		logon.CompleteLogon(session.Player.UserID, session.Player.SessionID)
+		logon.CompleteLogon(player.UserID, player.SessionID)
 		//登录成功后的删除
-		logon.RemoveUserWithSession(session.Player.UserID, session.Player.SessionID)
+		logon.RemoveUserWithSession(player.UserID, player.SessionID)
 		//通知世界或者游戏
-		actor.Main.Send(conf.TOPIC_WORLD,
-			packet_world_delplayer(session.Player.UserID, session.Player.GateID, session.Player.SessionID))
+		actor.Main.Send(conf.TOPIC_WORLD, packet_world_delplayer(player.UserID, player.GateID, player.SessionID))
 	}
 	session.Close()
 }
