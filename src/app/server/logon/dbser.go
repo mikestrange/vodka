@@ -14,10 +14,10 @@ func init_dber() {
 	mysql, _ = gsql.NewConnAddr(gsql.ToAddr("root", "120.77.149.74:3306", "123456", "game_master"), 20)
 }
 
-func check_user(uid int32, PassWord string) int {
+func check_user(uid int, PassWord string) int {
 	return 0
 	err_code := 0
-	pwd, ok := gredis.Str(redis, gredis.ToUser(int(uid), "pwd"))
+	pwd, ok := gredis.Str(redis, gredis.ToUser(uid, "pwd"))
 	if ok {
 		fmt.Println("redis 获取密码:", pwd, ",用户=", PassWord)
 		if pwd != PassWord {
@@ -32,7 +32,7 @@ func check_user(uid int32, PassWord string) int {
 				err_code = 1
 			}
 			//写入redis
-			redis.SetUser(int(uid), "pwd", pwd, 0)
+			redis.SetUser(uid, "pwd", pwd, 0)
 		} else {
 			err_code = 1
 			fmt.Println("Scan Err:", err)

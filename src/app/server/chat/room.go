@@ -8,19 +8,19 @@ import "fmt"
 type ChatTable struct {
 	actor.BaseBox
 	//args
-	channel_id   int32
-	channel_type int8
-	users        map[int32]*GameUser
+	channel_id   int
+	channel_type int
+	users        map[int]*GameUser
 }
 
-func NewTable(cid int32, ctype int8) *ChatTable {
+func NewTable(cid int, ctype int) *ChatTable {
 	this := new(ChatTable)
 	this.InitTable(cid, ctype)
 	return this
 }
 
-func (this *ChatTable) InitTable(cid int32, ctype int8) {
-	this.users = make(map[int32]*GameUser)
+func (this *ChatTable) InitTable(cid int, ctype int) {
+	this.users = make(map[int]*GameUser)
 	this.channel_id = cid
 	this.channel_type = ctype
 }
@@ -36,14 +36,14 @@ func (this *ChatTable) AddUser(player *GameUser) (*GameUser, bool) {
 	return nil, true
 }
 
-func (this *ChatTable) GetUser(uid int32) (*GameUser, bool) {
+func (this *ChatTable) GetUser(uid int) (*GameUser, bool) {
 	if user, ok := this.users[uid]; ok {
 		return user, true
 	}
 	return nil, false
 }
 
-func (this *ChatTable) RemoveUser(uid int32) (*GameUser, bool) {
+func (this *ChatTable) RemoveUser(uid int) (*GameUser, bool) {
 	player, ok := this.users[uid]
 	if ok {
 		delete(this.users, uid)
@@ -63,7 +63,7 @@ func (this *ChatTable) NoticeAllUser(block func(*GameUser) interface{}) {
 	list := this.GetUserList()
 	//通知所有(无锁)
 	for _, player := range list {
-		actor.Main.Send(player.SerID(), block(player))
+		this.Main().Send(player.SerID(), block(player))
 	}
 }
 
@@ -110,7 +110,7 @@ func (this *ChatTable) on_quit_channel(header *GameHeader, packet gnet.ISocketPa
 		})
 		//通知>自己
 		psend := pack_exit_table(player.Player.UserID, player.Player.SessionID, cid, player.Player.UserID)
-		actor.Main.Send(player.SerID(), psend)
+		this.Main().Send(player.SerID(), psend)
 	} else {
 		fmt.Println("Exit Chat Err# no user [", header.UserID, "]in cid=", cid)
 	}

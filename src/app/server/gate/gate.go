@@ -71,17 +71,17 @@ func (this *LogicActor) OnMessage(args ...interface{}) {
 		this.mode.Done(pack.Cmd(), args...)
 	case conf.TOPIC_CLIENT:
 		//直接推送给客户端
-		UserID, SessionID, body := pack.ReadInt(), pack.ReadUInt64(), pack.ReadBytes(0)
+		UserID, SessionID, body := pack.ReadInt(), pack.ReadUInt64(), pack.ReadRemaining()
 		if target, ok := logon.GetUserBySession(UserID, SessionID); ok {
 			target.Send(gnet.NewPackArgs(pack.Cmd(), body))
 		}
 	default:
-		//通知其他模块
+		//通知其他模块(需要身份验证)
 		if session.IsLogin() {
 			player := session.Player
 			body := pack.GetBody()
 			psend := gnet.NewPackArgs(pack.Cmd(), player.UserID, player.GateID, player.SessionID, body)
-			actor.Main.Send(pack.Topic(), psend)
+			this.Main().Send(pack.Topic(), psend)
 		}
 	}
 }

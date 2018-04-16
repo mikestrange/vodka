@@ -47,18 +47,18 @@ func (this *ChatActor) OnMessage(args ...interface{}) {
 	}
 }
 
-func (this *ChatActor) on_build_channel(cid int32, ctype int8) {
+func (this *ChatActor) on_build_channel(cid int, ctype int) {
 	//this.ActorOf(int(cid), NewTable(cid, ctype))
 }
 
-func (this *ChatActor) on_remove_channel(cid int32) {
-	this.CloseRef(int(cid))
+func (this *ChatActor) on_remove_channel(cid int) {
+	this.CloseRef(cid)
 }
 
 func (this *ChatActor) on_table_message(pack gnet.ISocketPacket) {
 	header := NewHeader(pack)
 	cid := pack.ReadInt()
-	this.Send(int(cid), header, pack)
+	this.Send(cid, header, pack)
 }
 
 func (this *ChatActor) OnDie() {

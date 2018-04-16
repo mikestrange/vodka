@@ -22,7 +22,7 @@ func on_add_player(packet gnet.ISocketPacket) {
 	body := packet.ReadBytes(0)
 	//失败
 	if code != 0 {
-		actor.Main.Send(player.SerID(), packet_logon_result(code, player.UserID, player.SessionID, body))
+		actor.Main().Send(player.GateID, packet_logon_result(code, player.UserID, player.SessionID, body))
 		return
 	}
 	//添加玩家
@@ -30,15 +30,15 @@ func on_add_player(packet gnet.ISocketPacket) {
 		if kick_player.GateID != player.GateID {
 			//如果是自己的重复登陆，网关控制下
 			fmt.Println(fmt.Sprintf("Send kick Ok# uid=%d, session=%v", kick_player.UserID, kick_player.SessionID))
-			actor.Main.Send(kick_player.SerID(), packet_kick_player(1, kick_player))
+			actor.Main().Send(kick_player.GateID, packet_kick_player(1, kick_player))
 		} else {
 			fmt.Println("Send kick Err# uid same gate login:", player.UserID, player.GateID)
 		}
 	}
 	fmt.Println(fmt.Sprintf("Enter World Ok# uid=%d, session=%v, gate=%d", player.UserID, player.SessionID, player.GateID))
-	actor.Main.Send(player.SerID(), packet_logon_result(code, player.UserID, player.SessionID, body))
+	actor.Main().Send(player.GateID, packet_logon_result(code, player.UserID, player.SessionID, body))
 	//通知游戏
-	actor.Main.Send(conf.TOPIC_GAME, gnet.NewPackArgs(command.SERVER_ADD_PLAYER, player.UserID, player.GateID, player.SessionID))
+	actor.Main().Send(conf.TOPIC_GAME, gnet.NewPackArgs(command.SERVER_ADD_PLAYER, player.UserID, player.GateID, player.SessionID))
 }
 
 //移除玩家(网关通知)
@@ -50,7 +50,7 @@ func on_remove_player(packet gnet.ISocketPacket) {
 			fmt.Println("Remove Ok# user=", uid)
 			RemoveUser(uid)
 			//通知游戏
-			actor.Main.Send(conf.TOPIC_GAME, gnet.NewPackArgs(command.SERVER_DEL_PLAYER, player.UserID))
+			actor.Main().Send(conf.TOPIC_GAME, gnet.NewPackArgs(command.SERVER_DEL_PLAYER, player.UserID))
 		} else {
 			fmt.Println(uid, "No match user# get:", gateid, session, " local:", player.SessionID, player.GateID)
 		}
@@ -63,7 +63,7 @@ func on_remove_player(packet gnet.ISocketPacket) {
 func on_kick_player(session gnet.IBaseProxy, pack gnet.ISocketPacket) {
 	code, uid := pack.ReadShort(), pack.ReadInt()
 	if player, ok := RemoveUser(uid); ok {
-		actor.Main.Send(player.SerID(), packet_kick_player(code, player))
+		actor.Main().Send(player.GateID, packet_kick_player(code, player))
 		session.CloseOf(gnet.NewPackArgs(pack.Cmd(), int16(0), uid))
 	} else {
 		fmt.Println("Kick Err# no user:", uid)
@@ -82,7 +82,7 @@ func on_notice_players(session gnet.IBaseProxy, pack gnet.ISocketPacket) {
 }
 
 func on_online_player(session gnet.IBaseProxy, pack gnet.ISocketPacket) {
-	onlines := int32(len(players))
+	onlines := len(players)
 	fmt.Println("online player num = ", onlines)
 	session.CloseOf(gnet.NewPackArgs(command.SERVER_WORLD_GET_ONLINE_NUM, onlines))
 }

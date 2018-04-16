@@ -49,15 +49,15 @@ func (this *LogicActor) OnMessage(args ...interface{}) {
 }
 
 func on_change_name(pack gnet.ISocketPacket) {
-	UserID, GateID, SessionID := pack.ReadInt(), pack.ReadInt(), pack.ReadUInt64()
+	uid, GateID, SessionID := pack.ReadInt(), pack.ReadInt(), pack.ReadUInt64()
 	//
 	name := pack.ReadString()
 	//改名
-	fmt.Println("用户改名:", UserID, GateID, SessionID, name)
-	if ok := change_name(int(UserID), name); ok {
-		actor.Main.Send(int(GateID), pack_change_name(0, UserID, SessionID, name))
+	fmt.Println("用户改名:", uid, GateID, SessionID, name)
+	if ok := change_name(uid, name); ok {
+		actor.Main().Send(GateID, pack_change_name(0, uid, SessionID, name))
 	} else {
-		actor.Main.Send(int(GateID), pack_change_name(1, UserID, SessionID, ""))
+		actor.Main().Send(GateID, pack_change_name(1, uid, SessionID, ""))
 	}
 }
 

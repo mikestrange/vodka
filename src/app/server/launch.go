@@ -16,7 +16,7 @@ import "ants/cluster"
 func init() {
 	//路由分配
 	conf.EachVo(func(vo *conf.RouteVo) {
-		actor.Main.ActorOf(vo.Topic, cluster.NewRouterPort(vo.Port))
+		actor.Main().ActorOf(vo.Topic, cluster.NewRouterPort(vo.Port))
 	})
 }
 

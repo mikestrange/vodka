@@ -97,13 +97,9 @@ func (this *WorkPusher) ReadMsg(obser IWorkReceiver) {
 
 //多线程执行>阻塞退出
 func (this *WorkPusher) ReadRound(obser IWorkReceiver, size int) {
-	wg := gsys.NewGroup()
-	for i := 0; i < check_thread_num(size); i++ {
-		wg.Wrap(func() {
-			this.ReadMsg(obser)
-		})
-	}
-	wg.Wait()
+	gsys.WrapList(func() {
+		this.ReadMsg(obser)
+	}, check_thread_num(size))
 }
 
 //环境计时器

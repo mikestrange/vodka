@@ -33,14 +33,15 @@ const (
 
 //topics
 const (
-	TOPIC_SELF   = 0
-	TOPIC_LOGON  = 1
-	TOPIC_WORLD  = 2
-	TOPIC_GAME   = 3
-	TOPIC_HALL   = 4
-	TOPIC_CHAT   = 5
-	TOPIC_DATAS  = 6
-	TOPIC_CLIENT = 10 //派送给用户的
+	TOPIC_SELF    = 0
+	TOPIC_LOGON   = 1
+	TOPIC_WORLD   = 2
+	TOPIC_GAME    = 3
+	TOPIC_HALL    = 4
+	TOPIC_CHAT    = 5
+	TOPIC_DATAS   = 6
+	TOPIC_CLIENT  = 10 //派送给用户(单个)
+	TOPIC_CLIENTS = 11 //派送给用户(用户群) ushort+uids
 )
 
 //gate topics

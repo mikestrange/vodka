@@ -19,16 +19,43 @@ import "ants/kernel"
 var ser gnet.INetServer
 
 func test() {
-	actor.Main.SetActor(actor.NewFunc(func(args ...interface{}) {
+	//抛出盒子运行
+	actor.RunAndThrowActor(actor.Main(), actor.NewFunc(func(args ...interface{}) {
 		fmt.Println(args...)
-	}, nil))
-	actor.RunAndThrowBox(actor.Main, nil)
+	}, nil), nil)
+
+	actor.Main().Router("13", "13")
 	//
-	kernel.NewGo(func(client interface{}, b2 interface{}) {
-		//fmt.Println("err", client, b2)
-	}, 2).Run(func() {
-		//println("do:")
-	})
+	kernel.Go(func() {
+		println("执行")
+		//panic("no")
+	}).Catch(func(err interface{}) {
+		//输出错误
+		fmt.Println("处理错误2:", err)
+	}).Die(func() {
+		println("最终素材")
+	}).Done()
+
+	kernel.Try(func() {
+		panic("123")
+	}).Catch(func(err interface{}) {
+		fmt.Println("处理错误1")
+	}).Die(func() {
+
+	}).Done()
+
+	ena := []byte{1, 3, 5, 7}
+	//
+	m := []byte{1, 3, 4, 5}
+	for i := range m {
+		m[i] = (m[i] ^ ena[i]) + 1
+	}
+
+	for i := range m {
+		m[i] = (m[i] ^ ena[i]) - 1
+	}
+
+	fmt.Println(m)
 }
 
 func main() {

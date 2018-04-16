@@ -40,7 +40,7 @@ type SocketPacket struct {
 }
 
 func NewPacket() ISocketPacket {
-	this := new(SocketPacket)
+	this := &SocketPacket{}
 	this.InitByteArray()
 	return this
 }
@@ -65,7 +65,7 @@ func NewPackTopic(cmd int, topic int, args ...interface{}) ISocketPacket {
 
 //直接引用字段
 func NewPackBytes(bits []byte) ISocketPacket {
-	this := new(SocketPacket)
+	this := &SocketPacket{}
 	this.InitByteArrayWithBits(bits)
 	this.ReadBegin()
 	return this

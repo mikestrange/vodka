@@ -55,6 +55,7 @@ func (this *BoxRef) Die() {
 }
 
 func (this *BoxRef) OnReceiver(args ...interface{}) {
+	//这里捕获错误吧
 	this.actor.OnMessage(args...)
 }
 
@@ -73,7 +74,11 @@ func (this *BoxRef) setFather(father IBoxSystem) {
 	this.father = father
 }
 
-//独立运行的盒子
+func (this *BoxRef) Main() IBoxSystem {
+	return main_actor
+}
+
+//独立运行的盒子1
 func RunAndThrowBox(ref IBoxRef, val interface{}) IBoxRef {
 	ref.Make(val)
 	ref.OnReady()
@@ -82,4 +87,10 @@ func RunAndThrowBox(ref IBoxRef, val interface{}) IBoxRef {
 		ref.OnRelease()
 	}()
 	return ref
+}
+
+//独立运行的盒子2
+func RunAndThrowActor(ref IBoxRef, ator IBoxActor, val interface{}) IBoxRef {
+	ref.SetActor(ator)
+	return RunAndThrowBox(ref, val)
 }

@@ -30,29 +30,30 @@ type IByteArray interface {
 	//writes
 	//Write([]byte) (int, error)
 	WriteValue(...interface{})
-	WriteByte(int8)
-	WriteUByte(uint8)
-	WriteShort(int16)
-	WriteUShort(uint16)
-	WriteInt(int32)
+	WriteByte(int)
+	WriteUByte(int)
+	WriteShort(int)
+	WriteUShort(int)
+	WriteInt(int)
+	WriteString(str string)
+	WriteBytes([]byte)
 	WriteUInt(uint32)
 	WriteInt64(int64)
 	WriteUInt64(uint64)
-	WriteString(str string)
-	WriteBytes([]byte)
 	//reads
 	//Read([]byte) (int, error)
 	ReadValue(...interface{})
-	ReadByte() int8
-	ReadUByte() uint8
-	ReadShort() int16
-	ReadUShort() uint16
-	ReadInt() int32
+	ReadByte() int
+	ReadUByte() int
+	ReadShort() int
+	ReadUShort() int
+	ReadInt() int
+	ReadString() string
+	ReadBytes(int) []byte
+	ReadRemaining() []byte
 	ReadUInt() uint32
 	ReadInt64() int64
 	ReadUInt64() uint64
-	ReadString() string
-	ReadBytes(int) []byte
 	//datas
 	Bytes() []byte
 	GetByte(int) byte
@@ -89,14 +90,14 @@ func NewByteArrayWithVals(args ...interface{}) IByteArray {
 }
 
 func NewByteArrayWithSize(size int) IByteArray {
-	this := new(ByteArray)
+	this := &ByteArray{}
 	this.InitByteArrayWithSize(size)
 	return this
 }
 
 //这里直接引用，不会复制
 func NewByteArrayWithBytes(bits []byte) IByteArray {
-	this := new(ByteArray)
+	this := &ByteArray{}
 	this.InitByteArrayWithBits(bits)
 	return this
 }
@@ -223,34 +224,34 @@ func (this *ByteArray) _read_val(val interface{}) {
 	}
 }
 
-func (this *ByteArray) ReadByte() int8 {
+func (this *ByteArray) ReadByte() int {
 	var bit int8
 	this._read(&bit)
-	return bit
+	return int(bit)
 }
 
-func (this *ByteArray) ReadUByte() uint8 {
+func (this *ByteArray) ReadUByte() int {
 	var bit uint8
 	this._read(&bit)
-	return bit
+	return int(bit)
 }
 
-func (this *ByteArray) ReadShort() int16 {
+func (this *ByteArray) ReadShort() int {
 	var bit int16
 	this._read(&bit)
-	return bit
+	return int(bit)
 }
 
-func (this *ByteArray) ReadUShort() uint16 {
+func (this *ByteArray) ReadUShort() int {
 	var bit uint16
 	this._read(&bit)
-	return bit
+	return int(bit)
 }
 
-func (this *ByteArray) ReadInt() int32 {
+func (this *ByteArray) ReadInt() int {
 	var bit int32
 	this._read(&bit)
-	return bit
+	return int(bit)
 }
 
 func (this *ByteArray) ReadUInt() uint32 {
@@ -292,6 +293,10 @@ func (this *ByteArray) ReadBytes(size int) []byte {
 	}
 	this.SetPos(p + size)
 	return bits
+}
+
+func (this *ByteArray) ReadRemaining() []byte {
+	return this.ReadBytes(0)
 }
 
 //write
@@ -343,9 +348,9 @@ func (this *ByteArray) _write_val(val interface{}) {
 	case *string:
 		this.WriteString(*v)
 	case int:
-		this.WriteInt(int32(v))
+		this.WriteInt(v)
 	case *int:
-		this.WriteInt(int32(*v))
+		this.WriteInt(*v)
 	case IByteArray:
 		this.WriteBytes(v.Bytes())
 	case []byte:
@@ -361,24 +366,29 @@ func (this *ByteArray) WriteValue(vals ...interface{}) {
 	}
 }
 
-func (this *ByteArray) WriteByte(val int8) {
-	this._write(&val)
+func (this *ByteArray) WriteByte(val int) {
+	num := int8(val)
+	this._write(&num)
 }
 
-func (this *ByteArray) WriteUByte(val uint8) {
-	this._write(&val)
+func (this *ByteArray) WriteUByte(val int) {
+	num := uint8(val)
+	this._write(&num)
 }
 
-func (this *ByteArray) WriteShort(val int16) {
-	this._write(&val)
+func (this *ByteArray) WriteShort(val int) {
+	num := int16(val)
+	this._write(&num)
 }
 
-func (this *ByteArray) WriteUShort(val uint16) {
-	this._write(&val)
+func (this *ByteArray) WriteUShort(val int) {
+	num := uint16(val)
+	this._write(&num)
 }
 
-func (this *ByteArray) WriteInt(val int32) {
-	this._write(&val)
+func (this *ByteArray) WriteInt(val int) {
+	num := int32(val)
+	this._write(&num)
 }
 
 func (this *ByteArray) WriteUInt(val uint32) {

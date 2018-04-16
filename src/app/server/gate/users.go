@@ -3,8 +3,8 @@ package gate
 import "ants/gutil"
 
 type LogonMode struct {
-	open_list gutil.IArrayObject     //等待列表
-	users     map[int32]*GateSession //成功的列表
+	open_list gutil.IArrayObject   //等待列表
+	users     map[int]*GateSession //成功的列表
 }
 
 func NewLogonMode() *LogonMode {
@@ -15,7 +15,7 @@ func NewLogonMode() *LogonMode {
 
 func (this *LogonMode) InitLogonMode() {
 	this.open_list = gutil.NewArray()
-	this.users = make(map[int32]*GateSession)
+	this.users = make(map[int]*GateSession)
 }
 
 //提交登陆
@@ -24,7 +24,7 @@ func (this *LogonMode) CommitLogon(data interface{}) {
 }
 
 //完成登陆 获取登陆链接
-func (this *LogonMode) CompleteLogon(uid int32, session uint64) (*GateSession, bool) {
+func (this *LogonMode) CompleteLogon(uid int, session uint64) (*GateSession, bool) {
 	index, data := this.open_list.SeachValue(func(val interface{}) bool {
 		player := val.(*GateSession).Player
 		return player.UserID == uid && player.SessionID == session
@@ -37,7 +37,7 @@ func (this *LogonMode) CompleteLogon(uid int32, session uint64) (*GateSession, b
 }
 
 //绑定登陆数据用户
-func (this *LogonMode) AddUser(uid int32, data *GateSession) (*GateSession, bool) {
+func (this *LogonMode) AddUser(uid int, data *GateSession) (*GateSession, bool) {
 	val, ok := this.users[uid]
 	this.users[uid] = data
 	if ok {
@@ -46,21 +46,21 @@ func (this *LogonMode) AddUser(uid int32, data *GateSession) (*GateSession, bool
 	return nil, false
 }
 
-func (this *LogonMode) GetUser(uid int32) (*GateSession, bool) {
+func (this *LogonMode) GetUser(uid int) (*GateSession, bool) {
 	if val, ok := this.users[uid]; ok {
 		return val, true
 	}
 	return nil, false
 }
 
-func (this *LogonMode) GetUserBySession(uid int32, session uint64) (*GateSession, bool) {
+func (this *LogonMode) GetUserBySession(uid int, session uint64) (*GateSession, bool) {
 	if GetUser, ok := this.users[uid]; ok {
 		return GetUser, GetUser.Player.SessionID == session
 	}
 	return nil, false
 }
 
-func (this *LogonMode) RemoveUser(uid int32) (*GateSession, bool) {
+func (this *LogonMode) RemoveUser(uid int) (*GateSession, bool) {
 	if player, ok := this.users[uid]; ok {
 		delete(this.users, uid)
 		return player, true
@@ -69,7 +69,7 @@ func (this *LogonMode) RemoveUser(uid int32) (*GateSession, bool) {
 }
 
 //合法的移除
-func (this *LogonMode) RemoveUserWithSession(uid int32, session uint64) (*GateSession, bool) {
+func (this *LogonMode) RemoveUserWithSession(uid int, session uint64) (*GateSession, bool) {
 	if player, ok := this.users[uid]; ok {
 		if player.Player.SessionID == session {
 			delete(this.users, uid)

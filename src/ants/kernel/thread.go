@@ -1,55 +1,44 @@
 package kernel
 
-import (
-	"sync"
-)
-
-//控制所有的go
-var wg sync.WaitGroup
-
-func add() {
-	wg.Add(1)
-}
-
-func done() {
-	wg.Done()
-}
-
-func Wait() {
-	wg.Wait()
-}
-
-//接口
 type IGo interface {
-	Run(fun interface{}, args ...interface{})
+	//Try(interface{}, ...interface{}) IGo
+	Catch(func(interface{})) IGo
+	Die(func()) IGo
+	Done()
 }
 
 //可以被继承
 type GoThread struct {
-	Client interface{}
-	OnDie  func(interface{}, interface{})
+	target Throw
 }
 
 //新的线程
-func NewGo(die func(interface{}, interface{}), client interface{}) IGo {
-	return &GoThread{client, die}
+func Go(handle interface{}, args ...interface{}) IGo {
+	this := &GoThread{}
+	return this.Try(handle, args...)
 }
 
-func (this *GoThread) Run(fun interface{}, args ...interface{}) {
-	add()
-	go func() {
-		//处理错误
-		defer func() {
-			if err := recover(); err == nil {
-				this.OnDie(this.Client, nil)
-			} else {
-				this.OnDie(this.Client, err)
-			}
-			done()
-		}()
-		//执行
-		threadHandle(fun, args)
-	}()
+//protected
+func (this *GoThread) Try(handle interface{}, args ...interface{}) IGo {
+	this.target.Try(func() {
+		threadHandle(handle, args)
+	})
+	return this
+}
+
+//public
+func (this *GoThread) Catch(block func(interface{})) IGo {
+	this.target.Catch(block)
+	return this
+}
+
+func (this *GoThread) Die(block func()) IGo {
+	this.target.Die(block)
+	return this
+}
+
+func (this *GoThread) Done() {
+	go this.target.Done()
 }
 
 //支持3个参数

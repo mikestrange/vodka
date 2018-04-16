@@ -6,12 +6,12 @@ import "ants/actor"
 
 //世界角色
 type GamePlayer struct {
-	UserID    int32  //玩家ID
-	GateID    int32  //连接的网关ID
+	UserID    int    //玩家ID
+	GateID    int    //连接的网关ID
 	SessionID uint64 //世界唯一的会话id,用于却别同一用户不同连接
 	//其他条件
-	Status     int32  //游戏状态
-	AppID      int32  //登入的平台
+	Status     int    //游戏状态
+	AppID      int    //登入的平台
 	RegTime    int64  //登陆的时间（秒）
 	UpdateTime uint64 //刷新时间
 }
@@ -27,34 +27,26 @@ func (this *GamePlayer) UnPack(pack gnet.IByteArray) {
 	this.RegTime = gutil.GetTimer()
 }
 
-func (this *GamePlayer) SerID() int {
-	return int(this.GateID)
-}
-
-func (this *GamePlayer) UID() int {
-	return int(this.UserID)
-}
-
 //世界玩家列表
 var players map[int]*GamePlayer = make(map[int]*GamePlayer)
 
 //管理
-func GetUser(uid int32) (*GamePlayer, bool) {
-	player, ok := players[int(uid)]
+func GetUser(uid int) (*GamePlayer, bool) {
+	player, ok := players[uid]
 	return player, ok
 }
 
 func SetUser(player *GamePlayer) (*GamePlayer, bool) {
-	uid := player.UID()
+	uid := player.UserID
 	old, ok := players[uid]
 	players[uid] = player
 	return old, ok
 }
 
-func RemoveUser(uid int32) (*GamePlayer, bool) {
-	player, ok := players[int(uid)]
+func RemoveUser(uid int) (*GamePlayer, bool) {
+	player, ok := players[uid]
 	if ok {
-		delete(players, int(uid))
+		delete(players, uid)
 	}
 	return player, ok
 }
@@ -70,6 +62,6 @@ func GetUserList() []*GamePlayer {
 func NoticeAllUser(block func(*GamePlayer) interface{}) {
 	list := GetUserList()
 	for _, player := range list {
-		actor.Main.Send(player.SerID(), block(player))
+		actor.Main().Send(player.GateID, block(player))
 	}
 }

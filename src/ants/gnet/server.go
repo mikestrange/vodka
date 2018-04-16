@@ -5,7 +5,6 @@ import (
 	"ants/gsys"
 	"fmt"
 	"net"
-	"time"
 )
 
 type ServerBlock func(interface{}) INetProxy
@@ -13,7 +12,6 @@ type connSet map[net.Conn]int
 
 type TCPServer struct {
 	gsys.Locked
-
 	//必须
 	Port       int
 	ConnHandle ServerBlock
@@ -22,6 +20,7 @@ type TCPServer struct {
 	//private
 	ln     net.Listener
 	conns  connSet
+	wgSer  gsys.WaitGroup
 	wgConn gsys.WaitGroup
 }
 
@@ -88,12 +87,15 @@ func (this *TCPServer) ConnSize() int {
 
 func (this *TCPServer) Close() {
 	this.ln.Close()
+	this.wgSer.Wait()
 	this.cleanConns()
 	this.wgConn.Wait()
 }
 
 //运行
 func (this *TCPServer) run() {
+	this.wgSer.Add()
+	defer this.wgSer.Done()
 	for {
 		conn, err := this.ln.Accept()
 		if err == nil {
@@ -103,7 +105,7 @@ func (this *TCPServer) run() {
 				this.handleConn(conn)
 			}
 		} else {
-			if !this.check_accept(err) {
+			if check_server_error(err) {
 				break
 			}
 		}
@@ -117,25 +119,4 @@ func (this *TCPServer) handleConn(conn net.Conn) {
 		this.deleteConn(conn)
 		proxy.OnClose()
 	})
-}
-
-//没有什么意义的一段
-func (this *TCPServer) check_accept(err error) bool {
-	var tempDelay time.Duration = 0
-	if ne, ok := err.(net.Error); ok && ne.Temporary() {
-		if tempDelay == 0 {
-			tempDelay = 5 * time.Millisecond
-		} else {
-			tempDelay *= 2
-		}
-		if max := 1 * time.Second; tempDelay > max {
-			tempDelay = max
-		}
-		fmt.Println("Accept error: ", err, "; retrying in ", tempDelay)
-		time.Sleep(tempDelay)
-	} else {
-		fmt.Println("Accept Err:", err)
-		return false
-	}
-	return true
 }

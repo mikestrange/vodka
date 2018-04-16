@@ -5,11 +5,15 @@ import "ants/gsys"
 type RefSet map[interface{}]IBoxRef
 
 //主要
-var Main IBoxSystem = new(BoxSystem)
+var main_actor IBoxSystem = new(BoxSystem)
+
+func Main() IBoxSystem {
+	return main_actor
+}
 
 //静态
 type BoxSystem struct {
-	BaseBox //设置自身吧
+	BaseBox //自身能作为运行
 	wgRef   gsys.WaitGroup
 	locked  gsys.Locked
 	refs    RefSet
@@ -43,8 +47,8 @@ func (this *BoxSystem) handleRefer(ref IBoxRef) {
 	this.wgRef.Wrap(func() {
 		ref.PerformRunning()
 		this.UnRef(ref)
+		//ref.setFather(nil) //不解除
 		ref.OnRelease()
-		ref.setFather(nil)
 	})
 }
 

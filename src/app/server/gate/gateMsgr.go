@@ -28,13 +28,13 @@ func on_logon(session *GateSession, packet gnet.ISocketPacket) {
 	//
 	player.UserID = packet.ReadInt()
 	player.PassWord = packet.ReadString()
-	player.GateID = int32(gate_idx) //小心识别
+	player.GateID = gate_idx //网关id
 	player.SessionID = gsys.MainSession.UsedSessionID()
 	player.RegTime = gutil.GetTimer() //可以设计超时
 	//加入登陆队列
 	logon.CommitLogon(session)
 	fmt.Println(fmt.Sprintf("Logon Begin# uid=%d, session=%v serid=%d", player.UserID, player.SessionID, player.GateID))
-	actor.Main.Send(conf.TOPIC_LOGON, packet_logon_notice(player.UserID, player.PassWord, player.GateID, player.SessionID))
+	actor.Main().Send(conf.TOPIC_LOGON, packet_logon_notice(player.UserID, player.PassWord, player.GateID, player.SessionID))
 }
 
 //世界返回登录结果
@@ -56,7 +56,7 @@ func on_logon_result(packet gnet.ISocketPacket) {
 	} else {
 		if code == 0 {
 			//失败后返回世界移除
-			actor.Main.Send(conf.TOPIC_WORLD, packet_world_delplayer(UserID, gate_idx, SessionID))
+			actor.Main().Send(conf.TOPIC_WORLD, packet_world_delplayer(UserID, gate_idx, SessionID))
 		}
 	}
 }
@@ -71,7 +71,7 @@ func on_logout(session *GateSession) {
 		//登录成功后的删除
 		logon.RemoveUserWithSession(player.UserID, player.SessionID)
 		//通知世界或者游戏
-		actor.Main.Send(conf.TOPIC_WORLD, packet_world_delplayer(player.UserID, player.GateID, player.SessionID))
+		actor.Main().Send(conf.TOPIC_WORLD, packet_world_delplayer(player.UserID, player.GateID, player.SessionID))
 	}
 	session.Close()
 }
@@ -89,7 +89,7 @@ func on_kick(packet gnet.ISocketPacket) {
 }
 
 //commom
-func kick_player(session *GateSession, code int16) {
+func kick_player(session *GateSession, code int) {
 	//被踢的时候不会上报
 	fmt.Println(fmt.Sprintf("Kick User ok# code=%d uid=%d, session=%v", code, session.Player.UserID, session.Player.SessionID))
 	session.KickOut()

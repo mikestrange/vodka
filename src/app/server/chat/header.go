@@ -4,8 +4,8 @@ import "ants/gnet"
 
 //会话头
 type GameHeader struct {
-	UserID    int32
-	GateID    int32
+	UserID    int
+	GateID    int
 	SessionID uint64
 }
 

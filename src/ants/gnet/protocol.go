@@ -1,13 +1,14 @@
 package gnet
 
 import "fmt"
+import "errors"
 
 //解码-编码
 type IProtocoler interface {
 	//解码直接获得消息
-	Unmarshal([]byte) []interface{}
+	Unmarshal([]byte) ([][]byte, error)
 	//编码
-	Marshal(...interface{}) []byte
+	Marshal(...interface{}) ([]byte, error)
 	//编码每次尺寸
 	BuffSize() int
 }
@@ -29,15 +30,16 @@ func (this *netProtocoler) init() {
 	this.InitByteArray()
 }
 
-func (this *netProtocoler) Unmarshal(bits []byte) []interface{} {
+func (this *netProtocoler) Unmarshal(bits []byte) ([][]byte, error) {
 	this.Append(bits)
-	var messages []interface{}
+	var messages [][]byte
 	for {
 		if this.head_size == 0 {
 			if this.Available() >= HEAD_SIZE {
 				this.ReadValue(&this.head_size)
-				if !check_size_ok(this.head_size) {
-					panic(fmt.Sprintf("Unpack size err: head=%d", this.head_size))
+				if check_size_err(this.head_size) {
+					println("err size")
+					return nil, errors.New(fmt.Sprintf("Unpack size err: head=%d", this.head_size))
 				}
 			} else {
 				break
@@ -52,7 +54,7 @@ func (this *netProtocoler) Unmarshal(bits []byte) []interface{} {
 			}
 		}
 	}
-	return messages
+	return messages, nil
 }
 
 func (this *netProtocoler) flush() {
@@ -62,18 +64,18 @@ func (this *netProtocoler) flush() {
 }
 
 //这里选择了复制
-func (this *netProtocoler) Marshal(args ...interface{}) []byte {
+func (this *netProtocoler) Marshal(args ...interface{}) ([]byte, error) {
 	pack := NewByteArray()
 	for i := range args {
 		if bits := ToBytes(args[i]); bits != nil {
 			if size := len(bits); check_size_ok(size) {
 				pack.WriteValue(size, bits)
 			} else {
-				panic(fmt.Sprintf("Pack size err: size=%d", len(bits)))
+				return nil, errors.New(fmt.Sprintf("Pack size err: size=%d", len(bits)))
 			}
 		}
 	}
-	return pack.Bytes()
+	return pack.Bytes(), nil
 }
 
 func (this *netProtocoler) BuffSize() int {

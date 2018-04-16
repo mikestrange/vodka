@@ -9,18 +9,18 @@ func packet_logon_notice(args ...interface{}) gnet.IByteArray {
 }
 
 //登录返回
-func pack_logon_result(code int16, args ...interface{}) gnet.IByteArray {
+func pack_logon_result(code int, args ...interface{}) gnet.IByteArray {
 	psend := gnet.NewPacket()
 	psend.WriteBegin(command.CLIENT_LOGON)
-	psend.WriteValue(code)
+	psend.WriteShort(code)
 	psend.WriteValue(args...)
 	psend.WriteEnd()
 	return psend
 }
 
 //踢出
-func packet_kick_user(code int16) gnet.IByteArray {
-	return gnet.NewPackArgs(command.SERVER_KICK_PLAYER, code)
+func packet_kick_user(code int) gnet.IByteArray {
+	return gnet.NewPackArgs(command.SERVER_KICK_PLAYER, int16(code))
 }
 
 //世界添加用户
@@ -34,6 +34,6 @@ func packet_world_delplayer(args ...interface{}) gnet.IByteArray {
 }
 
 //通知世界转发给所有玩家(测试用)
-func packet_world_notices(cmd int, uid int32, bits []byte) gnet.IByteArray {
+func packet_world_notices(cmd int, uid int, bits []byte) gnet.IByteArray {
 	return gnet.NewPackArgs(command.SERVER_WORLD_NOTICE_PLAYERS, uid, cmd, bits)
 }

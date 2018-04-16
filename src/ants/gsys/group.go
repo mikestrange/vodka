@@ -7,23 +7,36 @@ import "sync"
 
 //interface
 type IWaitGroup interface {
-	Add()
-	Done()
-	Wait()
-	Wrap(func())
-	WrapArg(func(interface{}), interface{})
-	WrapArgs(func(...interface{}), ...interface{})
+	Add() IWaitGroup
+	Done() IWaitGroup
+	Wait() IWaitGroup
+	Wrap(func()) IWaitGroup
 }
 
-func NewGroup() IWaitGroup {
+//信号组
+func Group() IWaitGroup {
 	return new(WaitGroup)
 }
 
-func NewGroupWrap(f func()) IWaitGroup {
-	wg := NewGroup()
-	wg.Wrap(f)
-	wg.Wait()
-	return wg
+//异步等待
+func Wrap(block func()) IWaitGroup {
+	return Group().Wrap(block).Wait()
+}
+
+func WrapList(block func(), size int) IWaitGroup {
+	wg := Group()
+	for i := 0; i < size; i++ {
+		wg.Wrap(block)
+	}
+	return wg.Wait()
+}
+
+func Wraps(args ...func()) IWaitGroup {
+	wg := Group()
+	for i := range args {
+		wg.Wrap(args[i])
+	}
+	return wg.Wait()
 }
 
 //class Locked
@@ -31,39 +44,29 @@ type WaitGroup struct {
 	wg sync.WaitGroup
 }
 
-func (this *WaitGroup) Add() {
+//protected
+func (this *WaitGroup) Add() IWaitGroup {
 	this.wg.Add(1)
+	return this
 }
 
-func (this *WaitGroup) Done() {
+func (this *WaitGroup) Done() IWaitGroup {
 	this.wg.Done()
+	return this
 }
 
-func (this *WaitGroup) Wait() {
+//public
+func (this *WaitGroup) Wait() IWaitGroup {
 	this.wg.Wait()
+	return this
 }
 
 //异步等待方式
-func (this *WaitGroup) Wrap(block func()) {
+func (this *WaitGroup) Wrap(block func()) IWaitGroup {
 	this.Add()
 	go func() {
 		block()
 		this.Done()
 	}()
-}
-
-func (this *WaitGroup) WrapArg(block func(interface{}), data interface{}) {
-	this.Add()
-	go func() {
-		block(data)
-		this.Done()
-	}()
-}
-
-func (this *WaitGroup) WrapArgs(block func(...interface{}), args ...interface{}) {
-	this.Add()
-	go func() {
-		block(args...)
-		this.Done()
-	}()
+	return this
 }

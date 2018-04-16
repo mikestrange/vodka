@@ -13,16 +13,16 @@ const (
 
 //玩家信息
 type UserData struct {
-	UserID    int32  //玩家ID
+	UserID    int    //玩家ID
 	PassWord  string //登录密码
 	UserName  string //玩家名称
 	SessionID uint64 //世界唯一的会话id,用于却别同一用户不同连接
-	GateID    int32  //服务器ID(一般指游戏服务器)
-	Status    int32  //游戏状态
-	AppID     int32  //登入的平台
+	GateID    int    //服务器ID(一般指游戏服务器)
+	Status    int    //游戏状态
+	AppID     int    //登入的平台
 	RegTime   int64  //登陆的时间（秒）
 }
 
 func (this *UserData) ServerID() int {
-	return int(this.GateID)
+	return this.GateID
 }

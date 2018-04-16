@@ -59,17 +59,17 @@ func (this *LogicActor) on_logon(pack gnet.ISocketPacket) {
 	fmt.Println("Seach Result Code:", err_code, UserID, PassWord, SerID, SessionID)
 	var body []byte = []byte{}
 	if err_code == 0 {
-		body = get_user_info(int(UserID))
+		body = get_user_info(UserID)
 	}
 	//错误直接返回
 	if err_code != 0 {
-		actor.Main.Send(conf.TOPIC_WORLD, pack_logon_result(int16(err_code), UserID, SerID, SessionID, body))
+		this.Main().Send(conf.TOPIC_WORLD, pack_logon_result(err_code, UserID, SerID, SessionID, body))
 	} else {
-		actor.Main.Send(conf.TOPIC_WORLD, pack_logon_result(int16(err_code), UserID, SerID, SessionID, body))
+		this.Main().Send(conf.TOPIC_WORLD, pack_logon_result(err_code, UserID, SerID, SessionID, body))
 	}
 }
 
 //send world(通知登录结果)
-func pack_logon_result(code int16, uid int32, gateid int32, session uint64, body []byte) gnet.IBytes {
-	return gnet.NewPackArgs(command.SERVER_WORLD_ADD_PLAYER, code, uid, gateid, session, body)
+func pack_logon_result(code int, uid int, gate int, session uint64, body []byte) gnet.IBytes {
+	return gnet.NewPackArgs(command.SERVER_WORLD_ADD_PLAYER, int16(code), uid, gate, session, body)
 }

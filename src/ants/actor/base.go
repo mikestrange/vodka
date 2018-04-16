@@ -8,17 +8,23 @@ type IBoxActor interface {
 	OnDie()
 }
 
+//盒子推送，不具备其他方法
+type IBoxPusher interface {
+	Router(...interface{}) bool //摆渡
+}
+
 //盒子代理(run)
 type IBoxRef interface {
-	SetActor(IBoxActor)
-	Router(...interface{}) bool //摆渡
-	Make(interface{}) bool
-	OnReady()             //运行时准备
-	PerformRunning()      //执行运行
-	OnRelease()           //调度释放
-	Die()                 //自身关闭
-	setFather(IBoxSystem) //设置上级
-	Father() IBoxSystem   //父运行
+	IBoxPusher
+	SetActor(IBoxActor)    //监听对象
+	Make(interface{}) bool //制造chan
+	OnReady()              //运行时准备
+	PerformRunning()       //执行运行
+	OnRelease()            //调度释放
+	Die()                  //自身关闭
+	setFather(IBoxSystem)  //设置上级(不能继承)
+	Father() IBoxSystem    //父运行
+	Main() IBoxSystem      //顶峰
 }
 
 //盒子集合(node)
@@ -32,5 +38,5 @@ type IBoxSystem interface {
 	FindRef(interface{}) (IBoxRef, bool)   //查找
 	Send(interface{}, ...interface{}) bool //发送
 	Broadcast(...interface{})              //通知所有
-	CloseAll()                             //关闭移除所有
+	CloseAll()                             //关闭移除所有(禁止子类调用)
 }

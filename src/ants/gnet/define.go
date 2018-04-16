@@ -1,5 +1,9 @@
 package gnet
 
+import "time"
+import "fmt"
+import "net"
+
 //全局方法和常量
 
 const (
@@ -42,6 +46,33 @@ func ToBytes(data interface{}) []byte {
 	return nil
 }
 
+//查看缓冲是否正确
 func check_size_ok(size int) bool {
 	return size >= NET_BUFF_MINLEN && size <= NET_BUFF_MAXLEN
+}
+
+//查看缓冲是否错误
+func check_size_err(size int) bool {
+	return size < NET_BUFF_MINLEN || size > NET_BUFF_MAXLEN
+}
+
+//查看端口是否错误，错误就关闭服务
+func check_server_error(err error) bool {
+	var tempDelay time.Duration = 0
+	if ne, ok := err.(net.Error); ok && ne.Temporary() {
+		if tempDelay == 0 {
+			tempDelay = 5 * time.Millisecond
+		} else {
+			tempDelay *= 2
+		}
+		if max := 1 * time.Second; tempDelay > max {
+			tempDelay = max
+		}
+		fmt.Println("Accept error: ", err, "; retrying in ", tempDelay)
+		time.Sleep(tempDelay)
+	} else {
+		fmt.Println("Accept Err:", err)
+		return true
+	}
+	return false
 }

@@ -13,7 +13,7 @@ import "strings"
 func Test_remove_player(uid int) {
 	if tx, ok := gnet.Socket(conf.GetRouter(conf.PORT_WORLD).Addr); ok {
 		var code int16 = 1
-		tx.Send(gnet.NewPackArgs(command.SERVER_WORLD_KICK_PLAYER, code, int32(uid)))
+		tx.Send(gnet.NewPackArgs(command.SERVER_WORLD_KICK_PLAYER, code, uid))
 		//>>>
 		tx.Join(func(b []byte) {
 			pack := gnet.NewPackBytes(b)
@@ -113,9 +113,9 @@ func test_socket(uid int32, pwd string, tx gnet.Context) {
 				//str := gutil.Int64ToString(gutil.GetTimer())
 				//psend2 := gnet.NewPackTopic(command.CLIENT_NOTICE_CHANNEL, conf.TOPIC_CHAT, int32(10086), int16(1), str)
 				//tx.Send(psend2)
-				psend3 := gnet.NewPackTopic(command.CLIENT_ENTER_ROOM, conf.TOPIC_GAME, 100)
+				psend3 := gnet.NewPackTopic(command.CLIENT_GAME_ENTER, conf.TOPIC_GAME, 101)
 				tx.Send(psend3)
-				psend5 := gnet.NewPackTopic(command.CLIENT_TEXAS_SITDOWN, conf.TOPIC_GAME, 100, uid, int8(1), int32(1024))
+				psend5 := gnet.NewPackTopic(command.CLIENT_GAME_SIT, conf.TOPIC_GAME, 101, uid, int8(1), int32(1024))
 				tx.Send(psend5)
 				//psend4 := gnet.NewPackTopic(command.CLIENT_QUIT_CHANNEL, conf.TOPIC_CHAT, int32(10086))
 				//tx.Send(psend4)
