@@ -1,39 +1,52 @@
 package world
 
-//非网关模块通用(状态服务器)
 import "ants/gnet"
-import "app/command"
+import "ants/core"
+import "ants/gcode"
+import "app/conf"
 
-import "ants/actor"
-import "ants/gutil"
-
-//服务器的启动(快速启动)
 func ServerLaunch(port int) {
-	refLogic := actor.RunAndThrowBox(new(LogicActor), nil)
-	//服务器快速启动
-	gnet.ListenAndRunServer(port, func(session gnet.IBaseProxy) {
-		session.SetHandle(func(b []byte) {
-			refLogic.Router(gnet.NewPackBytes(b), session)
+	ref := new(LogicActor)
+	if conf.LOCAL_TEST {
+		core.Main().Join(conf.TOPIC_WORLD, ref)
+	} else {
+		core.RunAndThrowBox(ref, nil, func() {
+			//重启
 		})
+		run_service(port, ref)
+	}
+}
+
+func run_service(port int, ref core.IBox) {
+	//服务器快速启动
+	gnet.RunAndThrowServer(new(gnet.TCPServer), port, func(conn interface{}) gnet.IAgent {
+		session := gnet.NewProxy(conn)
+		session.SetReceiver(func(b []byte) {
+			ref.Push(gnet.NewBytes(session, b))
+		})
+		return session
+	}, func() {
+		ref.Die()
 	})
 }
 
-//逻辑块(单线)
 type LogicActor struct {
-	actor.BaseBox
-	mode gutil.IModeAccessor
+	core.BaseBox
 }
 
 func (this *LogicActor) OnReady() {
-	this.mode = command.SetMode(nil, events)
-	this.SetActor(this)
+	this.SetName("世界服务器")
+	this.SetAgent(this)
+	this.SetBlock(this.OnMessage)
 }
 
-func (this *LogicActor) OnMessage(args ...interface{}) {
-	pack := args[0].(gnet.ISocketPacket)
-	this.mode.Done(pack.Cmd(), args...)
-}
-
-func (this *LogicActor) OnDie() {
-
+func (this *LogicActor) OnMessage(event interface{}) {
+	data := event.(*gnet.SocketEvent)
+	pack := data.BeginPack()
+	if block, ok := events[pack.Cmd()]; ok {
+		switch f := block.(type) {
+		case func(gnet.IAgent, gcode.ISocketPacket):
+			f(data.Tx(), pack)
+		}
+	}
 }

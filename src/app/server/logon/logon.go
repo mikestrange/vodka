@@ -1,75 +1,59 @@
 package logon
 
-import "fmt"
-import "app/command"
-
-//非网关模块通用
-import "ants/conf"
 import "ants/gnet"
-import "ants/actor"
+import "ants/core"
+import "ants/gcode"
+import "app/conf"
 
 //弱连接服务器，不用管心跳
 func ServerLaunch(port int) {
 	//数据服务器链接
 	init_dber()
 	//模块调度
-	refLogic := actor.RunAndThrowBox(new(LogicActor), nil)
-	//服务器快速启动
-	gnet.ListenAndRunServer(port, func(session gnet.IBaseProxy) {
-		session.SetHandle(func(b []byte) {
-			refLogic.Router(gnet.NewPackBytes(b))
+	ref := new(LogicActor)
+	if conf.LOCAL_TEST {
+		core.Main().Join(conf.TOPIC_LOGON, ref)
+	} else {
+		core.RunAndThrowBox(ref, nil, func() {
+			//重启
 		})
+		run_service(port, ref)
+	}
+}
+
+func run_service(port int, ref core.IBox) {
+	//服务器快速启动
+	gnet.RunAndThrowServer(new(gnet.TCPServer), port, func(conn interface{}) gnet.IAgent {
+		session := gnet.NewProxy(conn)
+		session.SetReceiver(func(b []byte) {
+			ref.Push(gnet.NewBytes(session, b))
+		})
+		return session
+	}, func() {
+		ref.Die()
 	})
 }
 
 //逻辑块
 type LogicActor struct {
-	actor.BaseBox
+	core.Box
 }
 
 func (this *LogicActor) OnReady() {
-	this.SetActor(this)
+	this.SetName("登录服务器")
+	this.SetAgent(this)
 }
 
-func (this *LogicActor) OnDie() {
-
+func (this *LogicActor) Handle(event interface{}) {
+	//并发处理
+	this.Wrap(func() {
+		this.OnMessage(event)
+	})
 }
 
-func (this *LogicActor) PerformRunning() {
-	this.Worker().ReadRound(this, 1000)
-}
-
-func (this *LogicActor) OnMessage(args ...interface{}) {
-	pack := args[0].(gnet.ISocketPacket)
-	switch pack.Cmd() {
-	case command.CLIENT_LOGON:
-		this.on_logon(pack)
-	default:
-		println("login no handle:", pack.Cmd())
+func (this *LogicActor) OnMessage(event interface{}) {
+	pack := event.(*gnet.SocketEvent).BeginPack()
+	if f, ok := events[pack.Cmd()]; ok {
+		f.(func(gcode.ISocketPacket))(pack)
 	}
-}
-
-//message
-func (this *LogicActor) on_logon(pack gnet.ISocketPacket) {
-	//header
-	UserID, PassWord, SerID, SessionID := pack.ReadInt(), pack.ReadString(), pack.ReadInt(), pack.ReadUInt64()
-	//other
-	fmt.Println(fmt.Sprintf("Logon Info# uid=%d, session=%v gateid=%d", UserID, SessionID, SerID))
-	err_code := check_user(UserID, PassWord)
-	fmt.Println("Seach Result Code:", err_code, UserID, PassWord, SerID, SessionID)
-	var body []byte = []byte{}
-	if err_code == 0 {
-		body = get_user_info(UserID)
-	}
-	//错误直接返回
-	if err_code != 0 {
-		this.Main().Send(conf.TOPIC_WORLD, pack_logon_result(err_code, UserID, SerID, SessionID, body))
-	} else {
-		this.Main().Send(conf.TOPIC_WORLD, pack_logon_result(err_code, UserID, SerID, SessionID, body))
-	}
-}
-
-//send world(通知登录结果)
-func pack_logon_result(code int, uid int, gate int, session uint64, body []byte) gnet.IBytes {
-	return gnet.NewPackArgs(command.SERVER_WORLD_ADD_PLAYER, int16(code), uid, gate, session, body)
 }

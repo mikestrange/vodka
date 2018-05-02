@@ -1,163 +1,107 @@
 package gnet
 
 import "net"
-import "ants/gsys"
+import "ants/gcode"
 
 //关闭命令
 type workChan chan []interface{}
 
-//公开它
-type Context interface {
+type IConn interface {
+	//1,协议处理
+	SetProcesser(gcode.IByteCoder)
 	//直接关闭
-	Close() error
-	//关闭之前告白
-	CloseOf(...interface{})
+	Close()
 	//异步写
 	Send(...interface{}) bool
-	//异步读(内部知道就好了)
-	//Read([]byte) (int, error)
-	//Write([]byte) (int, error)
-	//读消息
-	ReadMsg(func([]byte))
-	//循环写
-	WriteLoop()
-	//写消息
-	WriteMsg(...interface{}) error
-	//协议处理
-	SetProcesser(IProtocoler)
-	//等待结束
-	Join(func([]byte))
+	//写入
+	WriteBytes([]byte)
+	//轮询
+	Run()
+	//远端地址
+	Remote() string
+	//近端地址
+	Local() string
 }
 
 //网络环境实例
-type NetConn struct {
-	L        gsys.Locked
-	Conn     net.Conn
-	coder    IProtocoler
-	work     workChan
-	openFlag bool
-}
-
-func NewConn(conn interface{}) Context {
-	this := new(NetConn)
-	this.SetConn(conn)
-	return this
+type Conn struct {
+	NetBase
+	conn  net.Conn
+	coder gcode.IByteCoder
 }
 
 //protected 继承能获得
-func (this *NetConn) SetConn(conn interface{}) {
-	this.openFlag = true
-	this.Conn = conn.(net.Conn)
-	this.coder = NewProtocoler()
-	this.work = make(workChan, NET_CHAN_SIZE)
-}
-
-//编码
-func (this *NetConn) Decode(args ...interface{}) ([]byte, error) {
-	return this.coder.Marshal(args...)
-}
-
-//解码
-func (this *NetConn) UnDecode(bits []byte) ([][]byte, error) {
-	return this.coder.Unmarshal(bits)
-}
-
-//缓冲
-func (this *NetConn) MakeBuffer() []byte {
-	if this.coder == nil {
-		return make([]byte, NET_BUFF_NEW_SIZE)
-	}
-	return make([]byte, this.coder.BuffSize())
-}
-
-//处理者(决定上三个)
-func (this *NetConn) SetProcesser(val IProtocoler) {
-	this.coder = val
-}
-
-func (this *NetConn) CloseWrite() {
-	this.L.Lock()
-	if this.openFlag {
-		this.openFlag = false
-		close(this.work)
-	}
-	this.L.Unlock()
-}
-
-func (this *NetConn) CloseRead() error {
-	return this.Conn.Close()
-}
-
-func (this *NetConn) Write(b []byte) (int, error) {
-	ret, err := this.Conn.Write(b)
-	return ret, err
-}
-
-func (this *NetConn) Read(b []byte) (int, error) {
-	ret, err := this.Conn.Read(b)
-	return ret, err
-}
-
-func (this *NetConn) WriteMsg(args ...interface{}) error {
-	ret, err := this.Decode(args...)
-	if err == nil {
-		this.Write(ret)
-	}
-	return err
+func (this *Conn) SetConn(conn interface{}) {
+	this.conn = conn.(net.Conn)
+	this.coder = gcode.NewProtocoler() //默认
 }
 
 // interface INetConn
-func (this *NetConn) Close() error {
-	this.CloseWrite()
-	return this.CloseRead()
+func (this *Conn) SetProcesser(val gcode.IByteCoder) {
+	this.coder = val
 }
 
-func (this *NetConn) CloseOf(args ...interface{}) {
-	this.WriteMsg(args...)
-	this.CloseWrite()
-}
-
-func (this *NetConn) Send(args ...interface{}) bool {
-	this.L.Lock()
-	if this.openFlag {
-		this.work <- args
+func (this *Conn) Send(args ...interface{}) bool {
+	decode := this.coder
+	if bits, err := decode.Marshal(args...); err == nil {
+		return this.Write(bits)
 	}
-	this.L.Unlock()
-	return true
+	return false
 }
 
-func (this *NetConn) ReadMsg(block func([]byte)) {
-	bit := this.MakeBuffer()
-	//异步读取
+func (this *Conn) Close() {
+	this.Exit(CLOSE_SIGN_SELF)
+}
+
+//conn oper
+func (this *Conn) Remote() string {
+	return this.conn.RemoteAddr().String()
+}
+
+func (this *Conn) Local() string {
+	return this.conn.LocalAddr().String()
+}
+
+func (this *Conn) Run() {
+	decode := this.coder
+	bit := make([]byte, decode.BuffSize())
 	for {
-		if ret, err := this.Read(bit); err == nil {
-			if list, uerr := this.UnDecode(bit[:ret]); uerr == nil {
+		if ret, err := this.conn.Read(bit); err == nil {
+			if list, ok := decode.Unmarshal(bit[:ret]); ok == nil {
 				for i := range list {
-					//Client错误就关闭
-					block(list[i])
+					this.Read(list[i])
 				}
 			} else {
+				this.Exit(CLOSE_SIGN_ERROR)
 				break
 			}
 		} else {
+			this.Exit(CLOSE_SIGN_CLIENT)
 			break
 		}
 	}
-	this.CloseWrite()
 }
 
-func (this *NetConn) WriteLoop() {
-	//写入消息(一般不存在错误处理)
-	for args := range this.work {
-		this.WriteMsg(args...)
+func (this *Conn) WriteBytes(b []byte) {
+	this.conn.Write(b)
+}
+
+//handle
+func (this *Conn) OnDestroy() {
+	this.conn.Close()
+}
+
+func (this *Conn) OnMessage(code int, data interface{}) {
+	switch code {
+	case EVENT_CONN_CLOSE:
+
+	case EVENT_CONN_READ:
+
+	case EVENT_CONN_SEND:
+
+	case EVENT_CONN_HEARTBEAT:
+
+	case EVENT_CONN_SIGN:
+
 	}
-	this.CloseRead()
-}
-
-func (this *NetConn) Join(block func([]byte)) {
-	gsys.Wraps(func() {
-		this.ReadMsg(block)
-	}, func() {
-		this.WriteLoop()
-	})
 }

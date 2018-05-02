@@ -1,7 +1,7 @@
 package gsql
 
 import (
-	"ants/gutil"
+	"ants/base"
 	"database/sql"
 	"fmt"
 )
@@ -17,9 +17,9 @@ func Int(v interface{}) int {
 	case int64:
 		return int(r)
 	case []byte:
-		return gutil.Atoi(string(r))
+		return base.Atoi(string(r))
 	case string:
-		return gutil.Atoi(r)
+		return base.Atoi(r)
 	}
 	return 0
 }
@@ -31,9 +31,9 @@ func Int64(v interface{}) int64 {
 	case int:
 		return int64(r)
 	case []byte:
-		return gutil.Atol(string(r))
+		return base.Atol(string(r))
 	case string:
-		return gutil.Atol(r)
+		return base.Atol(r)
 	}
 	return 0
 }
@@ -45,9 +45,9 @@ func Str(v interface{}) string {
 	case []byte:
 		return string(r)
 	case int:
-		return gutil.Itoa(r)
+		return base.Itoa(r)
 	case int64:
-		return gutil.Ltoa(r)
+		return base.Ltoa(r)
 	}
 	return ""
 }

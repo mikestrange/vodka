@@ -7,5 +7,5 @@ type GameUser struct {
 }
 
 func (this *GameUser) SerID() int {
-	return int(this.Player.GateID)
+	return this.Player.GateID
 }

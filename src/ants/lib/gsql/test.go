@@ -1,7 +1,7 @@
 package gsql
 
 import (
-	"ants/gutil"
+	"ants/base"
 	"fmt"
 )
 
@@ -27,13 +27,13 @@ func Test() {
 	//			fmt.Println("影响:", upd_nums)
 	//		}()
 	//	}
-	gutil.Sleep(100)
+	base.Sleep(100)
 
 	//查询一行数据
 	form := conn.Form("select * from logon_log")
 	if !form.Empty() {
-		t := gutil.GetNano()
-		fmt.Println("获取数据 form:", form.Item(0).Str("ip"), gutil.GetNano()-t)
+		t := base.Nano()
+		fmt.Println("获取数据 form:", form.Item(0).Str("ip"), base.Nano()-t)
 	}
-	gutil.Sleep(1000)
+	base.Sleep(1000)
 }

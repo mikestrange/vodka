@@ -1,7 +1,7 @@
 package gredis
 
 import (
-	"ants/gnet"
+	"ants/base"
 	"fmt"
 	//第三方
 	"github.com/garyburd/redigo/redis"
@@ -165,7 +165,7 @@ func StrMapStr(conn IConn, args ...interface{}) (map[string]string, bool) {
 //sets(转化值)
 //解码(复制类型)
 func Unmarshal(bits []byte, code int) (interface{}, bool) {
-	pack := gnet.NewByteArrayWithBytes(bits)
+	pack := base.NewByteArrayWithBytes(bits)
 	pack.SetBegin()
 	//类型不匹配
 	if ctype := int(pack.ReadByte()); code != ctype {
@@ -292,7 +292,7 @@ func Marshal(d interface{}) (interface{}, bool) {
 }
 
 func packInts(args ...int) interface{} {
-	pack := gnet.NewByteArray()
+	pack := base.NewByteArray()
 	pack.WriteByte(TYPE_INTS)
 	pack.WriteValue(len(args))
 	for i := range args {
@@ -302,7 +302,7 @@ func packInts(args ...int) interface{} {
 }
 
 func packInt64s(args ...int64) interface{} {
-	pack := gnet.NewByteArray()
+	pack := base.NewByteArray()
 	pack.WriteByte(TYPE_INT64S)
 	pack.WriteValue(len(args))
 	for i := range args {
@@ -312,7 +312,7 @@ func packInt64s(args ...int64) interface{} {
 }
 
 func packStrs(args ...string) interface{} {
-	pack := gnet.NewByteArray()
+	pack := base.NewByteArray()
 	pack.WriteByte(TYPE_STRS)
 	pack.WriteValue(len(args))
 	for i := range args {
@@ -323,7 +323,7 @@ func packStrs(args ...string) interface{} {
 
 //int maps
 func packIntMapInt(m map[int]int) interface{} {
-	pack := gnet.NewByteArray()
+	pack := base.NewByteArray()
 	pack.WriteByte(TYPE_INT_MAP_INT)
 	pack.WriteValue(len(m))
 	for k, v := range m {
@@ -333,7 +333,7 @@ func packIntMapInt(m map[int]int) interface{} {
 }
 
 func packIntMapInt64(m map[int]int64) interface{} {
-	pack := gnet.NewByteArray()
+	pack := base.NewByteArray()
 	pack.WriteByte(TYPE_INT_MAP_INT64)
 	pack.WriteValue(len(m))
 	for k, v := range m {
@@ -343,7 +343,7 @@ func packIntMapInt64(m map[int]int64) interface{} {
 }
 
 func packIntMapStr(m map[int]string) interface{} {
-	pack := gnet.NewByteArray()
+	pack := base.NewByteArray()
 	pack.WriteByte(TYPE_INT_MAP_STR)
 	pack.WriteValue(len(m))
 	for k, v := range m {
@@ -354,7 +354,7 @@ func packIntMapStr(m map[int]string) interface{} {
 
 //str maps
 func packStrMapInt(m map[string]int) interface{} {
-	pack := gnet.NewByteArray()
+	pack := base.NewByteArray()
 	pack.WriteByte(TYPE_STR_MAP_INT)
 	pack.WriteValue(len(m))
 	for k, v := range m {
@@ -364,7 +364,7 @@ func packStrMapInt(m map[string]int) interface{} {
 }
 
 func packStrMapInt64(m map[string]int64) interface{} {
-	pack := gnet.NewByteArray()
+	pack := base.NewByteArray()
 	pack.WriteByte(TYPE_STR_MAP_INT64)
 	pack.WriteValue(len(m))
 	for k, v := range m {
@@ -374,7 +374,7 @@ func packStrMapInt64(m map[string]int64) interface{} {
 }
 
 func packStrMapStr(m map[string]string) interface{} {
-	pack := gnet.NewByteArray()
+	pack := base.NewByteArray()
 	pack.WriteByte(TYPE_STR_MAP_STR)
 	pack.WriteValue(len(m))
 	for k, v := range m {

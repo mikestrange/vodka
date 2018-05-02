@@ -1,7 +1,8 @@
 package gate
 
-import "ants/gnet"
-import "app/command"
+import (
+	"ants/gnet"
+)
 
 type GateSession struct {
 	gnet.BaseProxy
@@ -45,8 +46,4 @@ func (this *GateSession) IsLogout() bool {
 
 func (this *GateSession) IsLive() bool {
 	return this.Player.Status > LOGON_NULL && this.Player.Status < LOGON_OUT
-}
-
-func (this *GateSession) OnClose() {
-	refLogic.Router(this, gnet.NewPackArgs(command.CLIENT_LOGOUT))
 }

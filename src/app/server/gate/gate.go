@@ -1,87 +1,73 @@
 package gate
 
 import (
-	"ants/actor"
-	"ants/conf"
+	"ants/core"
+	"ants/glog"
 	"ants/gnet"
-	"ants/gutil"
-	"app/command"
+	"app/conf"
 )
 
 var gate_idx int
-var logon *LogonMode
-var refLogic actor.IBoxRef
-
-func init() {
-	logon = NewLogonMode()
-}
-
-func on_gate_handle(block interface{}, args ...interface{}) {
-	switch block.(type) {
-	case func(gnet.ISocketPacket):
-		block.(func(gnet.ISocketPacket))(args[1].(gnet.ISocketPacket))
-	case func(*GateSession, gnet.ISocketPacket):
-		block.(func(*GateSession, gnet.ISocketPacket))(args[0].(*GateSession), args[1].(gnet.ISocketPacket))
-	case func(*GateSession):
-		block.(func(*GateSession))(args[0].(*GateSession))
-	case func(gnet.IBaseProxy):
-		block.(func(gnet.IBaseProxy))(args[0].(gnet.IBaseProxy))
-	default:
-		println("Err: no mode handle ")
-	}
-}
+var ref core.IBox
 
 //服务器的启动
 func ServerLaunch(port int, gid int) {
-	refLogic = actor.RunAndThrowBox(new(LogicActor), nil)
 	gate_idx = gid
-	gnet.NewTcpServer(port, func(conn interface{}) gnet.INetProxy {
-		session := NewSession(conn)
-		//handle func begin
-		session.SetHandle(func(b []byte) {
-			refLogic.Router(session, gnet.NewPackBytes(b))
+	ref = new(LogicActor)
+	if conf.LOCAL_TEST {
+		core.Main().Join(conf.TOPIC_GATE, ref)
+	} else {
+		core.RunAndThrowBox(ref, nil, func() {
+			//通知世界，然后重启
 		})
-		//handle func end
+	}
+	run_gate_service(port, ref)
+}
+
+func run_gate_service(port int, ref core.IBox) {
+	gnet.RunAndThrowServer(new(gnet.TCPServer), port, func(conn interface{}) gnet.IAgent {
+		session := NewSession(conn)
+		if check_blacklist(session.Conn()) {
+			glog.Warn("black list link: %s", session.Conn().Remote())
+			session.Close()
+		} else {
+			session.SetReceiver(func(b []byte) {
+				ref.Push(gnet.NewBytes(session, b))
+			})
+		}
 		return session
-	}).Start()
+	}, func() {
+		ref.Die() //服务器关闭，关闭当前的进程
+	})
 }
 
 //逻辑块(单线)
 type LogicActor struct {
-	actor.BaseBox
-	mode gutil.IModeAccessor
+	core.BaseBox
 }
 
 func (this *LogicActor) OnReady() {
-	this.mode = command.SetMode(on_gate_handle, events)
-	this.SetActor(this)
-}
-
-func (this *LogicActor) OnDie() {
-
+	this.SetName("网关服务器")
+	this.SetAgent(this)
+	this.SetBlock(this.OnMessage)
 }
 
 //不同的消息放入不同的线程
-func (this *LogicActor) OnMessage(args ...interface{}) {
-	session := args[0].(*GateSession)
-	pack := args[1].(gnet.ISocketPacket)
+func (this *LogicActor) OnMessage(event interface{}) {
+	data := event.(*gnet.SocketEvent)
+	pack := data.BeginPack()
+	glog.Debug("gate cmd: %d", pack.Cmd())
 	switch pack.Topic() {
 	case conf.TOPIC_SELF:
-		//自身处理
-		this.mode.Done(pack.Cmd(), args...)
+		request_topic_local(data.Tx(), pack)
 	case conf.TOPIC_CLIENT:
-		//直接推送给客户端
-		UserID, SessionID, body := pack.ReadInt(), pack.ReadUInt64(), pack.ReadRemaining()
-		if target, ok := logon.GetUserBySession(UserID, SessionID); ok {
-			target.Send(gnet.NewPackArgs(pack.Cmd(), body))
-		}
+		request_topic_client(pack)
 	default:
-		//通知其他模块(需要身份验证)
-		if session.IsLogin() {
-			player := session.Player
-			body := pack.GetBody()
-			psend := gnet.NewPackArgs(pack.Cmd(), player.UserID, player.GateID, player.SessionID, body)
-			this.Main().Send(pack.Topic(), psend)
-		}
+		request_topic_actor(data.Tx(), pack)
 	}
+}
+
+//黑名单
+func check_blacklist(tx gnet.IConn) bool {
+	return false //base.FindOk(tx.Remote(), "127.0.0.1")
 }

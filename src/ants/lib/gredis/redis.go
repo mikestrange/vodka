@@ -59,7 +59,7 @@ type redis_client struct {
 }
 
 func (this *redis_client) Connect(addr string) bool {
-	conn, err := redis.Dial("tcp", "127.0.0.1:6379")
+	conn, err := redis.Dial("tcp", addr)
 	if err != nil {
 		fmt.Println("Redis Err:", err)
 		return false

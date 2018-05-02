@@ -1,6 +1,6 @@
 package logon
 
-import "ants/gnet"
+import "ants/base"
 import "ants/lib/gredis"
 import "ants/lib/gsql"
 import "fmt"
@@ -46,7 +46,7 @@ func get_user_info(uid int) []byte {
 	return []byte{}
 	data, ok := gredis.Bytes(redis, gredis.ToUser(uid, "player.info"))
 	if ok {
-		//		pack := gnet.NewByteArrayWithBytes(data)
+		//		pack := base.NewByteArrayWithBytes(data)
 		//		pack.SetBegin()
 		//		name := pack.ReadString()
 		//		exp := pack.ReadInt()
@@ -63,7 +63,7 @@ func get_user_info(uid int) []byte {
 		var exp, vipexp, viptype, pion int
 		err := row.Scan(&name, &exp, &money, &vipexp, &viptype, &pion)
 		if err == nil {
-			pack := gnet.NewByteArrayWithVals(&name, &exp, &money, &vipexp, &viptype, &pion)
+			pack := base.NewByteArrayWithVals(&name, &exp, &money, &vipexp, &viptype, &pion)
 			redis.SetUser(uid, "player.info", pack.Bytes(), 0)
 			return pack.Bytes()
 		} else {

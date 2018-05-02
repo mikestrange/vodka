@@ -1,20 +1,20 @@
 package gate
 
-import "ants/gutil"
+import "ants/base"
 
 type LogonMode struct {
-	open_list gutil.IArrayObject   //等待列表
+	open_list base.IArrayObject    //等待列表
 	users     map[int]*GateSession //成功的列表
 }
 
 func NewLogonMode() *LogonMode {
 	this := new(LogonMode)
-	this.InitLogonMode()
+	this.init()
 	return this
 }
 
-func (this *LogonMode) InitLogonMode() {
-	this.open_list = gutil.NewArray()
+func (this *LogonMode) init() {
+	this.open_list = base.NewArray()
 	this.users = make(map[int]*GateSession)
 }
 
@@ -29,7 +29,7 @@ func (this *LogonMode) CompleteLogon(uid int, session uint64) (*GateSession, boo
 		player := val.(*GateSession).Player
 		return player.UserID == uid && player.SessionID == session
 	})
-	if index != gutil.NOT_VALUE {
+	if index != base.NOT_VALUE {
 		this.open_list.DelIndex(index)
 		return data.(*GateSession), true
 	}

@@ -1,13 +1,11 @@
 package chat
 
-import "ants/actor"
+import "ants/glog"
+import "ants/core"
+import "ants/gcode"
 import "ants/gnet"
-import "app/command"
-import "fmt"
 
 type ChatTable struct {
-	actor.BaseBox
-	//args
 	channel_id   int
 	channel_type int
 	users        map[int]*GameUser
@@ -63,69 +61,53 @@ func (this *ChatTable) NoticeAllUser(block func(*GameUser) interface{}) {
 	list := this.GetUserList()
 	//通知所有(无锁)
 	for _, player := range list {
-		this.Main().Send(player.SerID(), block(player))
+		core.Main().Send(player.SerID(), gnet.NewPack(nil, block(player)))
 	}
 }
 
-func (this *ChatTable) OnClose() {
+func (this *ChatTable) Close() {
 
 }
 
-func (this *ChatTable) OnMessage(args ...interface{}) {
-	header := args[0].(*GameHeader)
-	pack := args[1].(gnet.ISocketPacket)
-	switch pack.Cmd() {
-	case command.CLIENT_JOIN_CHANNEL:
-		this.on_join_channel(header, pack)
-	case command.CLIENT_QUIT_CHANNEL:
-		this.on_quit_channel(header, pack)
-	case command.CLIENT_NOTICE_CHANNEL:
-		this.on_message(header, pack)
-	}
-}
-
-//message
-func (this *ChatTable) on_join_channel(header *GameHeader, packet gnet.ISocketPacket) {
-	cid := this.channel_id
-	player := &GameUser{Player: header, UserName: packet.ReadString()}
+//handle
+func (this *ChatTable) on_join_channel(header *GameHeader, pack gcode.ISocketPacket) {
+	player := &GameUser{Player: header, UserName: pack.ReadString()}
 	old, ok := this.AddUser(player)
 	if ok {
-		fmt.Println("Enter Chat ok: uid=", player.Player.UserID, ",cid=", cid, ", gate=", player.SerID())
+		glog.Debug("Enter Chat ok: uid=%d gate=%d with cid=%d", player.Player.UserID, player.SerID(), this.channel_id)
 		this.NoticeAllUser(func(data *GameUser) interface{} {
-			return pack_join_table(data.Player.UserID, data.Player.SessionID, cid, player.Player.UserID)
+			return pack_join_table(data.Player.UserID, data.Player.SessionID, this.channel_id, player.Player.UserID)
 		})
 	} else {
-		//不用管已经被踢掉的用户
-		fmt.Println("Enter Chat kill# user = ", header.UserID, ", cid=", cid, ",session=", old.Player.SessionID)
+		glog.Debug("Enter Chat Err[kill user]: uid=%d gate=%d with cid=%d", header.UserID, old.SerID(), this.channel_id)
 	}
 }
 
-func (this *ChatTable) on_quit_channel(header *GameHeader, packet gnet.ISocketPacket) {
-	cid := this.channel_id
+func (this *ChatTable) on_quit_channel(header *GameHeader, pack gcode.ISocketPacket) {
 	if player, ok := this.RemoveUser(header.UserID); ok {
-		fmt.Println("Exit Chat Ok# user=", header.UserID, ", cid=", cid)
+		glog.Debug("Exit Chat Ok# uid=%d with cid=%d", header.UserID, this.channel_id)
 		//通知>所有
 		this.NoticeAllUser(func(data *GameUser) interface{} {
-			return pack_exit_table(data.Player.UserID, data.Player.SessionID, cid, player.Player.UserID)
+			return pack_exit_table(data.Player.UserID, data.Player.SessionID, this.channel_id, player.Player.UserID)
 		})
 		//通知>自己
-		psend := pack_exit_table(player.Player.UserID, player.Player.SessionID, cid, player.Player.UserID)
-		this.Main().Send(player.SerID(), psend)
+		psend := pack_exit_table(player.Player.UserID, player.Player.SessionID, this.channel_id, player.Player.UserID)
+		core.Main().Send(player.SerID(), gnet.NewPack(nil, psend))
 	} else {
-		fmt.Println("Exit Chat Err# no user [", header.UserID, "]in cid=", cid)
+		glog.Debug("Exit Chat Err[not user]# uid=%d with cid=%d", header.UserID, this.channel_id)
 	}
 }
 
-func (this *ChatTable) on_message(header *GameHeader, packet gnet.ISocketPacket) {
-	cid := this.channel_id
-	mtype, message := packet.ReadShort(), packet.ReadString()
+func (this *ChatTable) on_message(header *GameHeader, pack gcode.ISocketPacket) {
+	mtype, message := pack.ReadShort(), pack.ReadString()
 	if player, ok := this.GetUser(header.UserID); ok {
 		//通知>所有
-		fmt.Println("Notice Chat Ok: user=", header.UserID, ", cid=", cid, ", size=", len(message))
+		glog.Debug("Msg Chat Ok: uid=%d len=%d with cid=%d", header.UserID, len(message), this.channel_id)
 		this.NoticeAllUser(func(data *GameUser) interface{} {
-			return pack_message(data.Player.UserID, data.Player.SessionID, cid, player.Player.UserID, mtype, message)
+			return pack_message(data.Player.UserID, data.Player.SessionID,
+				this.channel_id, player.Player.UserID, mtype, message)
 		})
 	} else {
-		fmt.Println("Notice Chat Err: no user [", header.UserID, "] in cid=", cid, ", size=", len(message))
+		glog.Debug("Msg Chat Err[not user]: uid=%d len=%d with cid=%d", header.UserID, this.channel_id, len(message))
 	}
 }

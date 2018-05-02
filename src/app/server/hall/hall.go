@@ -1,66 +1,46 @@
 package hall
 
-import "fmt"
-import "app/command"
+import "ants/gnet"
+import "ants/core"
+import "ants/gcode"
+import "app/conf"
 
 //弱连接服务器，不用管心跳
-import "ants/gnet"
-import "ants/actor"
-
-//服务器的启动(快速启动)
 func ServerLaunch(port int) {
+	//数据服务器链接
 	init_dber()
 	//模块调度
-	refLogic := actor.RunAndThrowBox(new(LogicActor), nil)
-	//服务器快速启动
-	gnet.ListenAndRunServer(port, func(session gnet.IBaseProxy) {
-		session.SetHandle(func(b []byte) {
-			refLogic.Router(gnet.NewPackBytes(b), session)
+	ref := core.NewBox(new(LogicActor), "大厅服务")
+	if conf.LOCAL_TEST {
+		core.Main().Join(conf.TOPIC_HALL, ref)
+	} else {
+		core.RunAndThrowBox(ref, nil, func() {
+			//重启
 		})
+		run_service(port, ref)
+	}
+}
+
+func run_service(port int, ref core.IBox) {
+	//服务器快速启动
+	gnet.RunAndThrowServer(new(gnet.TCPServer), port, func(conn interface{}) gnet.IAgent {
+		session := gnet.NewProxy(conn)
+		session.SetReceiver(func(b []byte) {
+			ref.Push(gnet.NewBytes(session, b))
+		})
+		return session
+	}, func() {
+		ref.Die()
 	})
 }
 
 //逻辑块
 type LogicActor struct {
-	actor.BaseBox
 }
 
-func (this *LogicActor) OnReady() {
-	this.SetActor(this)
-}
-
-func (this *LogicActor) OnDie() {
-
-}
-
-func (this *LogicActor) PerformRunning() {
-	this.Worker().ReadRound(this, 1000)
-}
-
-//message
-func (this *LogicActor) OnMessage(args ...interface{}) {
-	pack := args[0].(gnet.ISocketPacket)
-	switch pack.Cmd() {
-	case command.CLIENT_CHANGE_NAME:
-		on_change_name(pack)
-	case command.CLIENT_CHANGE_INFO:
-		on_change_info(pack)
+func (this *LogicActor) Handle(event interface{}) {
+	pack := event.(*gnet.SocketEvent).BeginPack()
+	if f, ok := events[pack.Cmd()]; ok {
+		f.(func(gcode.ISocketPacket))(pack)
 	}
-}
-
-func on_change_name(pack gnet.ISocketPacket) {
-	uid, GateID, SessionID := pack.ReadInt(), pack.ReadInt(), pack.ReadUInt64()
-	//
-	name := pack.ReadString()
-	//改名
-	fmt.Println("用户改名:", uid, GateID, SessionID, name)
-	if ok := change_name(uid, name); ok {
-		actor.Main().Send(GateID, pack_change_name(0, uid, SessionID, name))
-	} else {
-		actor.Main().Send(GateID, pack_change_name(1, uid, SessionID, ""))
-	}
-}
-
-func on_change_info(pack gnet.ISocketPacket) {
-
 }
