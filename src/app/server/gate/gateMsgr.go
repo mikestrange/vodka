@@ -24,44 +24,6 @@ func init() {
 	logon = NewLogonMode()
 }
 
-//type msage
-
-func request_topic_client(pack gcode.ISocketPacket) { //直接推送给客户端
-	UserID, SessionID, body := pack.ReadInt(), pack.ReadUInt64(), pack.ReadRemaining()
-	if target, ok := logon.GetUserBySession(UserID, SessionID); ok {
-		target.Send(gcode.NewPackArgs(pack.Cmd(), body))
-	}
-}
-
-func request_topic_actor(val gnet.IAgent, pack gcode.ISocketPacket) { //直接推送给客户端
-	if val == nil {
-		glog.Debug("not handle gate actor cmd: %d", pack.Cmd())
-		return
-	}
-	session := val.(*GateSession)
-	if session.IsLogin() {
-		player := session.Player
-		body := pack.GetBody()
-		psend := gcode.NewPackArgs(pack.Cmd(), player.UserID, player.GateID, player.SessionID, body)
-		core.Main().Send(pack.Topic(), gnet.NewPack(session, psend))
-	}
-}
-
-func request_topic_local(val gnet.IAgent, pack gcode.ISocketPacket) { //本地处理
-	if block, ok := events[pack.Cmd()]; ok {
-		switch f := block.(type) {
-		case func(*GateSession, gcode.ISocketPacket):
-			if val != nil {
-				f(val.(*GateSession), pack)
-			} else {
-				glog.Warn("local is not session")
-			}
-		case func(gcode.ISocketPacket):
-			f(pack)
-		}
-	}
-}
-
 //客户端请求登录
 func on_logon(session *GateSession, packet gcode.ISocketPacket) {
 	if session.IsBegin() {

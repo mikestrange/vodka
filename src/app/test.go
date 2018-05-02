@@ -83,7 +83,7 @@ func Test_login_send(idx int, pwd string) bool {
 }
 
 func test_socket(uid int32, pwd string, tx gnet.Context) {
-	tx.Send(gcode.NewPackArgs(command.CLIENT_LOGON, uid, pwd))
+	//tx.Send(gcode.NewPackArgs(command.CLIENT_LOGON, uid, pwd))
 	//
 	t := base.Nano()
 	tx.SetReceiver(func(bits []byte) {

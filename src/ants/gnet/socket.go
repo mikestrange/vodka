@@ -2,6 +2,7 @@ package gnet
 
 import "net"
 import "fmt"
+import "ants/gcode"
 
 //基础的代理
 type TcpSocket struct {
@@ -21,6 +22,8 @@ func (this *TcpSocket) Connect(addr string) bool {
 	if err == nil {
 		fmt.Println("Socket Connect Ok:", conn.RemoteAddr().String())
 		this.SetConn(conn)
+		this.Listen(this, 1024, 60*10) //默认3秒
+		this.Conn().SetProcesser(gcode.NewClient())
 		return true
 	}
 	fmt.Println("Socket Connect Err:", err)

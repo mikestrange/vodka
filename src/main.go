@@ -9,7 +9,6 @@ import _ "ants/gnet"
 import _ "ants/gcode"
 
 import "app"
-
 import "app/server"
 
 func init() {
@@ -23,6 +22,7 @@ func init() {
 		//go gredis.Test()
 		//go gsql.Test()
 	}
+
 }
 
 func main() {

@@ -13,7 +13,7 @@ type SerConf struct {
 	Addr  string
 	Name  string
 	Topic int //消息派送 actor ID
-	Type  int
+	SerID int
 }
 
 func toAddr(port int) string {

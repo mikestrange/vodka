@@ -2,6 +2,7 @@ package gate
 
 import (
 	"ants/core"
+	"ants/gcode"
 	"ants/glog"
 	"ants/gnet"
 	"app/conf"
@@ -27,6 +28,7 @@ func ServerLaunch(port int, gid int) {
 func run_gate_service(port int, ref core.IBox) {
 	gnet.RunAndThrowServer(new(gnet.TCPServer), port, func(conn interface{}) gnet.IAgent {
 		session := NewSession(conn)
+		session.Conn().SetProcesser(gcode.NewClient())
 		if check_blacklist(session.Conn()) {
 			glog.Warn("black list link: %s", session.Conn().Remote())
 			session.Close()
@@ -59,11 +61,43 @@ func (this *LogicActor) OnMessage(event interface{}) {
 	glog.Debug("gate cmd: %d", pack.Cmd())
 	switch pack.Topic() {
 	case conf.TOPIC_SELF:
-		request_topic_local(data.Tx(), pack)
+		this.local_handle(data.Tx(), pack)
 	case conf.TOPIC_CLIENT:
-		request_topic_client(pack)
+		this.send_to_client(pack)
 	default:
-		request_topic_actor(data.Tx(), pack)
+		this.send_actor_handle(data.Tx().(*GateSession), pack)
+	}
+}
+
+//本地处理
+func (this *LogicActor) local_handle(session gnet.Context, pack gcode.ISocketPacket) {
+	if block, ok := events[pack.Cmd()]; ok {
+		switch f := block.(type) {
+		case func(*GateSession, gcode.ISocketPacket):
+			f(session.(*GateSession), pack)
+		case func(gcode.ISocketPacket):
+			f(pack)
+		default:
+			glog.Debug("not handle func:", pack.Topic(), pack.Cmd())
+		}
+	}
+}
+
+//发送给模块
+func (this *LogicActor) send_actor_handle(session *GateSession, pack gcode.ISocketPacket) {
+	if session.IsLogin() {
+		player := session.Player
+		body := pack.GetBody()
+		psend := gcode.NewPackArgs(pack.Cmd(), player.UserID, player.GateID, player.SessionID, body)
+		core.Main().Send(pack.Topic(), gnet.NewPack(session, psend))
+	}
+}
+
+//发送给客户端
+func (this *LogicActor) send_to_client(pack gcode.ISocketPacket) {
+	UserID, SessionID, body := pack.ReadInt(), pack.ReadUInt64(), pack.ReadRemaining()
+	if target, ok := logon.GetUserBySession(UserID, SessionID); ok {
+		target.Send(gcode.NewPackArgs(pack.Cmd(), body))
 	}
 }
 

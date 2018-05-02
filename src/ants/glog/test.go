@@ -4,7 +4,7 @@ import "ants/base"
 import "ants/core"
 import "os"
 
-func init() {
+func _init() {
 	LogAndRunning(LOG_DEBUG, 100)
 	Debug("运行路径=%s", base.Pwd())
 	//递归建立目录

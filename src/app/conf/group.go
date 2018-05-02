@@ -4,6 +4,19 @@ import "ants/core"
 import "ants/gnet"
 import "ants/gcode"
 
+type CellGroup struct {
+	core.Box
+}
+
+func (this *CellGroup) OnReady() {
+	this.SetAgent(this)
+}
+
+func (this *CellGroup) Handle(event interface{}) {
+	//集群处理
+	this.Broadcast(event)
+}
+
 //配置服务器组
 type CellActor struct {
 	core.Box
@@ -45,7 +58,11 @@ func (this *CellActor) connect(pack gcode.ISocketPacket) {
 func init() {
 	if !LOCAL_TEST {
 		EachVo(func(vo *SerConf) {
-			core.Main().Join(vo.Topic, &CellActor{data: vo}, nil)
+			if box, ok := core.Main().Find(vo.Topic); ok {
+				box.Join(vo.SerID, &CellActor{data: vo}, nil)
+			} else {
+				core.Main().Join(vo.Topic, &CellGroup{})
+			}
 		})
 	}
 }

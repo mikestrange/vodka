@@ -19,11 +19,11 @@ type IByteCoder interface {
 }
 
 //查看缓冲是否正确
-func check_size_ok(size int) bool {
+func CheckSizeOk(size int) bool {
 	return size >= NET_BUFF_MINLEN && size <= NET_BUFF_MAXLEN
 }
 
 //查看缓冲是否错误
-func check_size_err(size int) bool {
+func CheckSizeErr(size int) bool {
 	return size < NET_BUFF_MINLEN || size > NET_BUFF_MAXLEN
 }

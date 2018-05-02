@@ -21,6 +21,8 @@ type IConn interface {
 	Remote() string
 	//近端地址
 	Local() string
+	//local
+	SetTimeout(int)
 }
 
 //网络环境实例

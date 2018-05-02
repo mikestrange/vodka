@@ -24,12 +24,16 @@ type NetContext struct {
 func NewContext(conn interface{}) Context {
 	this := new(NetContext)
 	this.SetConn(conn)
+	this.Listen(this, 1024, 60*10) //默认3秒
 	return this
 }
 
 func (this *NetContext) SetConn(conn interface{}) {
 	this.conn.SetConn(conn)
-	this.conn.Listen(this, 1024, 60*10)
+}
+
+func (this *NetContext) Listen(conn IHandle, size int, delay int) {
+	this.conn.Listen(conn, size, delay) //默认3秒
 }
 
 func (this *NetContext) SetReceiver(block func([]byte)) {
@@ -80,6 +84,10 @@ func (this *NetContext) CloseOf(args ...interface{}) {
 
 func (this *NetContext) OnDestroy() {
 	this.conn.OnDestroy()
+}
+
+func (this *NetContext) DoHandle(v []byte) {
+	this.handle(v)
 }
 
 func (this *NetContext) OnMessage(code int, data interface{}) {
