@@ -6,8 +6,5 @@ type BaseProxy struct {
 }
 
 func NewProxy(conn interface{}) *BaseProxy {
-	this := new(BaseProxy)
-	this.SetConn(conn)
-	this.Listen(this, 1024, 60*10)
-	return this
+	return new(BaseProxy)
 }

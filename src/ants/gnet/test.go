@@ -17,7 +17,7 @@ func test() {
 	})
 	//服务器进程
 	tcp, ok := RunAndThrowServer(new(TCPServer), 8081, func(conn interface{}) IAgent {
-		tx := NewContext(conn)
+		tx := NewContext()
 		println("todo")
 		tx.SetReceiver(func(b []byte) {
 			println("msg")

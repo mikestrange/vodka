@@ -9,6 +9,9 @@ type IRowsForm interface {
 	Length() int
 	Empty() bool
 	Elements() []IRowItem
+	Push(...IRowItem)
+	//追加表单
+	PushForm(IRowsForm)
 }
 
 //每一行数据
@@ -93,7 +96,7 @@ type rowsForm struct {
 
 func (this *rowsForm) next() IRowItem {
 	item := newItem()
-	this.rows = append(this.rows, item)
+	this.Push(item)
 	return item
 }
 
@@ -111,4 +114,12 @@ func (this *rowsForm) Item(idx int) IRowItem {
 
 func (this *rowsForm) Empty() bool {
 	return len(this.rows) == 0
+}
+
+func (this *rowsForm) Push(items ...IRowItem) {
+	this.rows = append(this.rows, items...)
+}
+
+func (this *rowsForm) PushForm(form IRowsForm) {
+	this.Push(form.Elements()...)
 }

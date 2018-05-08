@@ -10,6 +10,8 @@ import _ "ants/gcode"
 
 import "app"
 import "app/server"
+import _ "app/proxy"
+import _ "ants/hippo"
 
 func init() {
 	if base.OsCompare(1, "cli") {

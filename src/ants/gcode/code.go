@@ -11,7 +11,7 @@ const (
 //解码-编码
 type IByteCoder interface {
 	//解码直接获得消息
-	Unmarshal([]byte) ([][]byte, error)
+	Unmarshal([]byte) ([]interface{}, error)
 	//编码
 	Marshal(...interface{}) ([]byte, error)
 	//编码每次尺寸

@@ -22,9 +22,9 @@ type netProtocoler struct {
 	head_size      int //包头
 }
 
-func (this *netProtocoler) Unmarshal(bits []byte) ([][]byte, error) {
+func (this *netProtocoler) Unmarshal(bits []byte) ([]interface{}, error) {
 	this.Append(bits)
-	var messages [][]byte
+	var messages []interface{}
 	for {
 		if this.head_size == 0 {
 			if this.Available() >= HEAD_SIZE {

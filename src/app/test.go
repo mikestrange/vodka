@@ -23,7 +23,7 @@ func Test_remove_player(uid int) {
 				fmt.Println("踢出用户失败:", pack.ReadInt())
 			}
 		})
-		gnet.RunAndThrowAgent(tx)
+		//gnet.RunAndThrowAgent(tx)
 		tx.Send(gcode.NewPackArgs(command.SERVER_WORLD_KICK_PLAYER, code, uid))
 	}
 }
@@ -41,7 +41,7 @@ func Test_send_all() {
 		for i := 0; i < 10; i++ {
 			message += "abcde"
 		}
-		gnet.RunAndThrowAgent(tx)
+		//gnet.RunAndThrowAgent(tx)
 		tx.Send(gcode.NewPackArgs(command.SERVER_WORLD_NOTICE_PLAYERS, uid, cmd, cid, fromid, mtype, message))
 		tx.SetReceiver(func(b []byte) {
 			println("on read")
@@ -58,7 +58,7 @@ func Test_get_online() {
 			pack.ReadBegin()
 			fmt.Println("当前在线人数 socket:", pack.ReadInt())
 		})
-		gnet.RunAndThrowAgent(tx)
+		//gnet.RunAndThrowAgent(tx)
 	}
 }
 
@@ -83,7 +83,7 @@ func Test_login_send(idx int, pwd string) bool {
 }
 
 func test_socket(uid int32, pwd string, tx gnet.Context) {
-	//tx.Send(gcode.NewPackArgs(command.CLIENT_LOGON, uid, pwd))
+	tx.Send(gcode.NewPackArgs(command.CLIENT_LOGON, uid, pwd))
 	//
 	t := base.Nano()
 	tx.SetReceiver(func(bits []byte) {
@@ -142,7 +142,7 @@ func test_socket(uid int32, pwd string, tx gnet.Context) {
 			fmt.Println("客户端未处理:", packet.Cmd())
 		}
 	})
-	gnet.RunAndThrowAgent(tx)
+	//gnet.RunAndThrowAgent(tx)
 }
 
 func Test(b int) {

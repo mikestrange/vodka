@@ -27,10 +27,10 @@ func ServerLaunch(port int, gid int) {
 
 func run_gate_service(port int, ref core.IBox) {
 	gnet.RunAndThrowServer(new(gnet.TCPServer), port, func(conn interface{}) gnet.IAgent {
-		session := NewSession(conn)
-		session.Conn().SetProcesser(gcode.NewClient())
-		if check_blacklist(session.Conn()) {
-			glog.Warn("black list link: %s", session.Conn().Remote())
+		session := NewSession()
+		session.SetProcesser(gcode.NewClient())
+		if check_blacklist(session) {
+			glog.Warn("black list link: %s", session.Remote())
 			session.Close()
 		} else {
 			session.SetReceiver(func(b []byte) {

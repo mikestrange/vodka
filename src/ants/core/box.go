@@ -187,7 +187,7 @@ func (this *Box) CloseAll() {
 }
 
 func (this *Box) OnReady() {
-	//this.SetAgent()
+	//this.SetAgent(this)
 	//this.Make(val)
 }
 

@@ -44,9 +44,8 @@ func (this *CellActor) connect(pack gcode.ISocketPacket) {
 		if conn, ok := gnet.Socket(this.data.Addr); ok {
 			this.conn = conn
 			conn.SetReceiver(func(b []byte) {
-
+				//
 			})
-			gnet.RunAndThrowAgent(conn)
 		} else {
 			return
 		}

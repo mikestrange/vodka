@@ -34,9 +34,9 @@ func (this *BodyCode) Codeing(b []byte) []byte {
 	return b
 }
 
-func (this *BodyCode) Unmarshal(bits []byte) ([][]byte, error) {
+func (this *BodyCode) Unmarshal(bits []byte) ([]interface{}, error) {
 	this.Append(bits)
-	var messages [][]byte
+	var messages []interface{}
 	for {
 		if this.head_size == 0 {
 			if this.Available() >= HEAD_SIZE {

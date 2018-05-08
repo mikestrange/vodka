@@ -75,6 +75,7 @@ func (this *TCPServer) Run() {
 
 func (this *TCPServer) handleAgent(conn net.Conn) {
 	tx := this.handle(conn)
+	tx.OnReady(conn)
 	this.WrapChild(func() {
 		tx.Run()
 		this.delConn(conn)

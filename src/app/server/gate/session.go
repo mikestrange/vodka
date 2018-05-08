@@ -1,8 +1,6 @@
 package gate
 
 import (
-	"ants/base"
-	"ants/gcode"
 	"ants/gnet"
 )
 
@@ -11,10 +9,8 @@ type GateSession struct {
 	Player *UserData
 }
 
-func NewSession(conn interface{}) *GateSession {
+func NewSession() *GateSession {
 	this := new(GateSession)
-	this.SetConn(conn)
-	this.Listen(this, 1024, 3)
 	this.Player = new(UserData)
 	return this
 }
@@ -53,19 +49,4 @@ func (this *GateSession) IsLogout() bool {
 
 func (this *GateSession) IsLive() bool {
 	return this.Player.Status > LOGON_NULL && this.Player.Status < LOGON_OUT
-}
-
-func (this *GateSession) OnMessage(code int, data interface{}) {
-	if code == gnet.EVENT_CONN_READ {
-		this.DoHandle(base.ToBytes(data))
-	} else if code == gnet.EVENT_CONN_HEARTBEAT {
-		if this.IsLogin() {
-			this.Send(gcode.NewPackArgs(gnet.EVENT_CONN_HEARTBEAT))
-		} else {
-			println("关闭啊")
-			this.Close()
-		}
-	} else if code == gnet.EVENT_CONN_SEND {
-		this.Conn().WriteBytes(base.ToBytes(data))
-	}
 }

@@ -12,6 +12,8 @@ type IConn interface {
 	Connect(string, int) bool
 	//关闭
 	Close() error
+	//打开debug
+	Debug()
 	//具体链接
 	Conn() *sql.DB
 	//地址
@@ -33,8 +35,9 @@ type IConn interface {
 }
 
 type sql_client struct {
-	conn *sql.DB
-	addr string
+	conn  *sql.DB
+	addr  string
+	debug bool
 }
 
 //本地
@@ -53,16 +56,20 @@ func (this *sql_client) Conn() *sql.DB {
 	return this.conn
 }
 
+func (this *sql_client) Debug() {
+	this.debug = true
+}
+
 func (this *sql_client) Connect(addr string, maxOpen int) bool {
 	if maxOpen < MysqlMinOpen {
 		maxOpen = MysqlMaxOpen
 	}
 	conn, err := sql.Open("mysql", addr)
 	if err != nil {
-		println("Mysql Err:", addr)
+		fmt.Println("Mysql Err:", addr)
 		return false
 	}
-	println("Mysql Ok:", addr)
+	fmt.Println("Mysql Ok:", addr)
 	this.addr = addr
 	this.conn = conn
 	this.conn.SetMaxOpenConns(maxOpen)
@@ -96,15 +103,21 @@ func (this *sql_client) Begin() (*sql.Tx, bool) {
 func (this *sql_client) Exec(sql string, args ...interface{}) (sql.Result, bool) {
 	ret, err := this.conn.Exec(sql, args...)
 	if err == nil {
+		if this.debug {
+			fmt.Println("Exec ok:", sql)
+		}
 		return ret, true
 	}
-	fmt.Println("Exec Err:", err)
+	fmt.Println("Exec Err:", err, ",sql=", sql)
 	return nil, false
 }
 
 func (this *sql_client) Query(sql string, args ...interface{}) (*sql.Rows, bool) {
 	ret, err := this.conn.Query(sql, args...)
 	if err == nil {
+		if this.debug {
+			fmt.Println("Query ok:", sql)
+		}
 		return ret, true
 	}
 	fmt.Println("Query Err:", err)
@@ -132,6 +145,9 @@ func (this *sql_client) QueryRow(sql string, args ...interface{}) *sql.Row {
 func (this *sql_client) Prepare(sql string) (*sql.Stmt, bool) {
 	stm, err := this.conn.Prepare(sql)
 	if err == nil {
+		if this.debug {
+			fmt.Println("Prepare ok:", sql)
+		}
 		return stm, true
 	}
 	fmt.Println("Prepare Err:", err)

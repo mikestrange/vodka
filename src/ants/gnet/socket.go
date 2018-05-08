@@ -21,11 +21,15 @@ func (this *TcpSocket) Connect(addr string) bool {
 	conn, err := net.Dial("tcp", addr)
 	if err == nil {
 		fmt.Println("Socket Connect Ok:", conn.RemoteAddr().String())
-		this.SetConn(conn)
-		this.Listen(this, 1024, 60*10) //默认3秒
-		this.Conn().SetProcesser(gcode.NewClient())
+		RunAndThrowAgent(this, conn)
 		return true
 	}
 	fmt.Println("Socket Connect Err:", err)
 	return false
+}
+
+func (this *TcpSocket) OnReady(conn interface{}) {
+	this.SetConn(conn)
+	this.Listen(this, 1024)
+	this.SetProcesser(gcode.NewClient())
 }

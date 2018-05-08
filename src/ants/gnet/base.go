@@ -1,67 +1,108 @@
 package gnet
 
-//网络的具体事务
-const (
-	EVENT_CONN_CONNECT   = 0
-	EVENT_CONN_READ      = 1
-	EVENT_CONN_SEND      = 2
-	EVENT_CONN_CLOSE     = 3
-	EVENT_CONN_SIGN      = 4 //信号
-	EVENT_CONN_HEARTBEAT = 5 //心跳
-)
+import "ants/base"
 
-//其他
-const (
-	//服务器容量
-	NET_SERVER_SIZE = 10000
-	//默认网络通道容量
-	NET_CHAN_SIZE = 1000
-	//默认心跳时间
-	PING_TIME = 1000 * 60 * 5 //5分钟
-)
+type INetBase interface {
+	//生成监听
+	Listen(IHandle, int) bool
+	//超时
+	SetTimeout(int)
+	//处理
+	Done(interface{}) bool
+	Write(interface{}) bool
+	Read(interface{}) bool
+	Loop()
+	LoopTimeout()
+	//退出
+	Exit(int)
+}
 
-//关闭信号
-const (
-	CLOSE_SIGN_CLIENT = 1 //客户端关闭
-	CLOSE_SIGN_ERROR  = 2 //发生错误
-	CLOSE_SIGN_SELF   = 3 //自己关闭
-)
+//网络基础
+type NetBase struct {
+	INetBase
+	base.Locked
+	openFlag bool
+	chans    *Channels
+}
 
-//发送通道大小
-func check_send_size(size int) int {
-	if size < NET_CHAN_SIZE {
-		return NET_CHAN_SIZE
+func newBase() INetBase {
+	return new(NetBase)
+}
+
+func (this *NetBase) Listen(handle IHandle, size int) bool {
+	ok := false
+	this.Lock()
+	if !this.openFlag {
+		ok = true
+		this.chans = newChannel(size)
+		this.chans.SetHandle(handle)
+		this.openFlag = true
 	}
-	return size
+	this.Unlock()
+	return ok
 }
 
-func check_conn_size(size int) int {
-	if size < NET_SERVER_SIZE {
-		return NET_SERVER_SIZE
+func (this *NetBase) Write(b interface{}) bool {
+	ok := false
+	this.Lock()
+	if this.openFlag {
+		ok = true
+		this.chans.Send(b)
 	}
-	return size
+	this.Unlock()
+	return ok
 }
 
-//网络代理
-type IAgent interface {
-	Run()   //阻塞
-	Wait()  //异步等待
-	OnDie() //结束
+func (this *NetBase) Read(b interface{}) bool {
+	ok := false
+	this.Lock()
+	if this.openFlag {
+		ok = true
+		this.chans.Read(b)
+	}
+	this.Unlock()
+	return ok
 }
 
-//tcp链接
-func Socket(addr string) (Context, bool) {
-	this := new(TcpSocket)
-	return this, this.Connect(addr)
+func (this *NetBase) Done(b interface{}) bool {
+	ok := false
+	this.Lock()
+	if this.openFlag {
+		ok = true
+		this.chans.Done(b)
+	}
+	this.Unlock()
+	return ok
 }
 
-//抛出代理运行
-func RunAndThrowAgent(val IAgent, args ...func()) {
-	go func() {
-		val.Run()
-		val.OnDie()
-		for i := range args {
-			args[i]()
-		}
-	}()
+func (this *NetBase) Exit(code int) {
+	this.Lock()
+	if this.openFlag {
+		this.openFlag = false
+		this.chans.CloseOf(code)
+	}
+	this.Unlock()
+}
+
+func (this *NetBase) SetTimeout(delay int) {
+	this.Lock()
+	if this.openFlag {
+		this.chans.SetTimeout(delay)
+	}
+	this.Unlock()
+}
+
+func (this *NetBase) Loop() {
+	this.chans.Loop()
+}
+
+func (this *NetBase) LoopTimeout() {
+	this.chans.LoopWithTimeout()
+}
+
+func init2() {
+	println("init")
+	t := newBase()
+	t.Exit(1)
+	//t.Listen(t, 100, 1)
 }
