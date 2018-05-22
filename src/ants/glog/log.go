@@ -33,7 +33,8 @@ var box LogBox
 type LogBox struct {
 	core.Box
 	//打印等级
-	Lv int
+	Lv   int
+	size int
 }
 
 func (this *LogBox) OnReady() {

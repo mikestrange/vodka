@@ -1,0 +1,54 @@
+
+//自身保护
+Work{
+	Receiver() 		//接收
+	Make(){
+		recver.OnReady()
+		go func(){
+			recver.Recv(this)
+			recver.End()
+		}()
+	}
+	Close()			//关闭
+	Wait(){
+		this.wg.Wait()
+		this.OnDie()
+	}
+}
+
+
+Box extends Work{
+	Super()Box
+	setSuper()
+	Find()
+	CloseAll()
+	Join(wid,work){
+		this.wgChild.Wrap(func(){
+			work.Make()
+		})
+	}
+	Send(wid)
+	Broadcast()		//全推送
+	Wait(){
+		this.wg.Wait()
+		this.CloseAll()
+		this.wgChild.Wait()
+		this.OnDie()
+	}
+}
+
+
+//接收可以并发
+Receiver{
+	OnReady(){
+		
+	}
+	
+	Recv(c <- chan interface{}){
+		
+	}
+	
+	End(){
+		
+	}
+}

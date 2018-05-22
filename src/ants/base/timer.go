@@ -62,6 +62,7 @@ func TryFun(f func()) string {
 	t := Nano()
 	f()
 	str := NanoStr(Nano() - t)
+	//println(str)
 	return str
 }
 

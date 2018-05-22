@@ -1,5 +1,7 @@
 package main
 
+import "fmt"
+import "reflect"
 import "ants/base"
 import "ants/glog"
 
@@ -25,6 +27,35 @@ func init() {
 		//go gsql.Test()
 	}
 
+	type S struct {
+		F string `species:"gopher" color:"blue"`
+		M string `species:"gopher2" color:"blue2"`
+	}
+
+	s := S{}
+	st := reflect.TypeOf(s)
+	field := st.Field(1)
+	fmt.Println(field.Tag.Get("color"), field.Tag.Get("species"))
+
+	size := 10240000
+	c2 := make([]byte, size)
+	for i := 0; i < size; i++ {
+		c2[i] = 123
+	}
+
+	str := base.TryFun(func() {
+		c := make([]byte, size)
+		for i := 0; i < size; i++ {
+			c[i] = c2[i]
+		}
+	})
+	println("for消耗:", str)
+
+	str2 := base.TryFun(func() {
+		c := make([]byte, size)
+		copy(c, c2)
+	})
+	println("copy消耗:", str2)
 }
 
 func main() {

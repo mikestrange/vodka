@@ -25,7 +25,7 @@ type IBox interface {
 	OnReady()                       //准备进程
 	CloseAll()                      //关闭所有子进程
 	Send(int, interface{}) bool     //通知子节点
-	Broadcast(interface{})          //通知所有自节点
+	Broadcast(interface{})          //通知所有子节点
 	//IWork
 	Push(interface{}) bool //推送自己运行
 	NewTimer() ITimer      //基于时间
@@ -35,8 +35,8 @@ type IBox interface {
 //运行盒子
 type Box struct {
 	//IBox
-	work    Work
-	boxs    boxSet
+	work    Work   //8
+	boxs    boxSet //8
 	wgBox   base.WaitGroup
 	wgChild base.WaitGroup
 	_name   string
@@ -144,6 +144,7 @@ func (this *Box) unBox(idx int, box IBox) {
 	this.Lock()
 	if this.boxs != nil {
 		if val, ok := this.boxs[idx]; ok {
+			//判断是否一致
 			if val == box {
 				delete(this.boxs, idx)
 			}

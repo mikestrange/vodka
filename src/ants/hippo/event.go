@@ -1,22 +1,35 @@
 package hippo
 
+//事件
 type IEvent interface {
-	Perform()
+	Check(int) bool
+	Code() int
+	Caller() interface{}
+	Data() interface{}
 }
 
-//发送事件
-type SendEvent struct {
-	tx    IContext
-	conn  IConn
-	bytes []byte
+type Event struct {
+	caller interface{}
+	code   int
+	data   interface{}
 }
 
-func newEvent(tx IContext, conn IConn, b []byte) IEvent {
-	return &SendEvent{tx, conn, b}
+func NewEvent(code int, caller interface{}, data interface{}) IEvent {
+	return &Event{code: code, caller: caller, data: data}
 }
 
-func (this *SendEvent) Perform() {
-	if !this.conn.SendBytes(this.bytes) {
-		this.tx.CloseSign(CLOSE_SIGN_ERROR)
-	}
+func (this *Event) Check(code int) bool {
+	return this.code == code
+}
+
+func (this *Event) Code() int {
+	return this.code
+}
+
+func (this *Event) Caller() interface{} {
+	return this.caller
+}
+
+func (this *Event) Data() interface{} {
+	return this.data
 }

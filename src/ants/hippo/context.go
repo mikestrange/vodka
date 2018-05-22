@@ -1,83 +1,53 @@
 package hippo
 
-//环境
+//具体环境
+type IContext interface {
+	//SetConn(IConn)                  //操作的
+	Conn() IConn                    //具体链接
+	SetCoding(ICoding)              //编码格式
+	SendMsg(...interface{}) bool    //写消息
+	ReadMsg() ([]interface{}, bool) //读消息
+	Close() bool                    //自身关闭
+
+}
+
+//加入协议部分
 type Context struct {
-	conn  IConn
-	code  ICoding
-	actor IActor
+	conn IConn
+	code ICoding
 }
 
-func NewContext(conn IConn) IContext {
-	this := new(Context)
-	this.SetConn(conn)
-	return this
-}
-
-//必须设置
 func (this *Context) SetConn(conn IConn) {
 	this.conn = conn
-}
-
-//必须设置
-func (this *Context) SetCoding(code ICoding) {
-	this.code = code
-}
-
-//必须设置
-func (this *Context) SetActor(ator IActor) {
-	this.actor = ator
-}
-
-func (this *Context) ReadMsg(b []byte) ([]interface{}, error) {
-	ret, err := this.conn.ReadBytes(b)
-	if err == nil {
-		list, derr := this.code.Decode(b[:ret])
-		if derr == nil {
-			return list, nil
-		} else {
-			return nil, derr
-		}
-	}
-	return nil, err
-}
-
-func (this *Context) CloseOf(args ...interface{}) {
-	this.SendMsg(args...)
-	this.Close()
-}
-
-func (this *Context) Close() {
-	this.CloseSign(CLOSE_SIGN_SELF)
+	//this.code = NewBigCoding() //默认
 }
 
 func (this *Context) Conn() IConn {
 	return this.conn
 }
 
-//actor
+func (this *Context) SetCoding(val ICoding) {
+	this.code = val
+}
+
 func (this *Context) SendMsg(args ...interface{}) bool {
-	if b, err := this.code.Encode(args...); err == nil {
-		this.actor.PushEvent(newEvent(this, this.conn, b))
-		return true
+	for i := range args {
+		if b, ok := this.code.Encode(args[i]); ok {
+			if this.conn.Write(b) {
+				return true
+			}
+		}
 	}
 	return false
 }
 
-func (this *Context) CloseSign(code int) {
-	this.actor.Exit(code)
+func (this *Context) ReadMsg() ([]interface{}, bool) {
+	if b, ok := this.conn.Read(this.code.Buffer()); ok {
+		return this.code.Decode(b)
+	}
+	return nil, false
 }
 
-func (this *Context) Loop() {
-	b := this.code.NewBits()
-	for {
-		if args, err := this.ReadMsg(b); err == nil {
-			for i := range args {
-				this.actor.PushRead(args[i])
-			}
-		} else {
-			this.CloseSign(CLOSE_SIGN_ERROR)
-			break
-		}
-	}
-	this.conn.Close()
+func (this *Context) Close() bool {
+	return this.conn.Close()
 }

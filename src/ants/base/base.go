@@ -37,7 +37,7 @@ func Throw(str string, args ...interface{}) {
 捕获函数
 */
 func Try(do func(), ok func(bool)) {
-	//defer catch(ok)
+	//defer Catch(ok)
 	defer ok(true)
 	do()
 }

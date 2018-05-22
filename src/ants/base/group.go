@@ -72,9 +72,13 @@ func (this *WaitGroup) Wait() IGroup {
 //异步等待方式
 func (this *WaitGroup) Wrap(f func()) IGroup {
 	this.Add()
-	TryGo(f, func(ok bool) {
+	go func() {
+		f()
 		this.Done()
-	})
+	}()
+	//	TryGo(f, func(ok bool) {
+	//		this.Done()
+	//	})
 	return this
 }
 
